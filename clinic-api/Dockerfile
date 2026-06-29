@@ -11,7 +11,7 @@ ENV DATABASE_URL=postgresql://build:build@localhost:5432/build
 RUN npx prisma generate
 RUN npm run build
 
-# Stage 2: production
+# Stage 2: production — v2
 FROM node:20-alpine AS runner
 WORKDIR /app
 
