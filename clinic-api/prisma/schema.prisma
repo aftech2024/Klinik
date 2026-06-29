@@ -1,0 +1,620 @@
+// Prisma Schema for aftech Klinik - Clinic Management System
+// Database: PostgreSQL
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ============================================================
+// ENUMS
+// ============================================================
+
+enum UserRole {
+  SUPER_ADMIN
+  ADMIN
+  DOCTOR
+  NURSE
+  PHARMACIST
+  CASHIER
+  PATIENT
+}
+
+enum Gender {
+  MALE
+  FEMALE
+}
+
+enum AppointmentStatus {
+  PENDING
+  CONFIRMED
+  CHECKED_IN
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+  NO_SHOW
+}
+
+enum QueueStatus {
+  WAITING
+  CALLED
+  IN_PROGRESS
+  COMPLETED
+  SKIPPED
+}
+
+enum BillingStatus {
+  DRAFT
+  PENDING
+  PAID
+  PARTIAL
+  CANCELLED
+  REFUNDED
+}
+
+enum PaymentMethod {
+  CASH
+  CARD
+  TRANSFER
+  QRIS
+  INSURANCE
+}
+
+enum ArticleStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum DayOfWeek {
+  MONDAY
+  TUESDAY
+  WEDNESDAY
+  THURSDAY
+  FRIDAY
+  SATURDAY
+  SUNDAY
+}
+
+// ============================================================
+// AUTH & USER MANAGEMENT
+// ============================================================
+
+model User {
+  id            String   @id @default(uuid()) @db.Uuid
+  email         String   @unique
+  phone         String?  @unique
+  passwordHash  String   @map("password_hash")
+  name          String?
+  role          UserRole @default(PATIENT)
+  isActive      Boolean  @default(true) @map("is_active")
+  isVerified    Boolean  @default(false) @map("is_verified")
+  lastLoginAt   DateTime? @map("last_login_at")
+  // Clinic (branch) this user administers. NULL for SUPER_ADMIN (global) and patients.
+  managedBranchId String? @map("managed_branch_id") @db.Uuid
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  managedBranch    Branch?           @relation("BranchAdmins", fields: [managedBranchId], references: [id], onDelete: SetNull)
+  patient          Patient?
+  doctor           Doctor?
+  auditLogs        AuditLog[]
+  refreshTokens    RefreshToken[]
+  posTransactions  PosTransaction[]  @relation("CashierTransactions")
+  stockAdjustments StockAdjustment[] @relation("StockAdjustUser")
+  transferRequests StockTransfer[]   @relation("TransferRequester")
+  transferApprovals StockTransfer[]  @relation("TransferApprover")
+
+  @@map("users")
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid()) @db.Uuid
+  token     String   @unique
+  userId    String   @map("user_id") @db.Uuid
+  expiresAt DateTime @map("expires_at")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("refresh_tokens")
+}
+
+// ============================================================
+// PATIENT MANAGEMENT
+// ============================================================
+
+model Patient {
+  id               String    @id @default(uuid()) @db.Uuid
+  userId           String    @unique @map("user_id") @db.Uuid
+  medicalNumber    String    @unique @map("medical_number")
+  name             String
+  dateOfBirth      DateTime? @map("date_of_birth") @db.Date
+  gender           Gender?
+  address          String?
+  city             String?
+  bloodType        String?   @map("blood_type")
+  allergies        Json?     @default("[]")
+  emergencyContact Json?     @map("emergency_contact")
+  photoUrl         String?   @map("photo_url")
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
+
+  user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  appointments    Appointment[]
+  medicalRecords  MedicalRecord[]
+  billings        Billing[]
+  posTransactions PosTransaction[]
+
+  @@map("patients")
+}
+
+// ============================================================
+// DOCTOR MANAGEMENT
+// ============================================================
+
+model Doctor {
+  id            String  @id @default(uuid()) @db.Uuid
+  userId        String  @unique @map("user_id") @db.Uuid
+  name          String
+  slug          String  @unique
+  specialty     String
+  licenseNumber String? @map("license_number")
+  photoUrl      String? @map("photo_url")
+  bio           String? @db.Text
+  experience    Int?    // years of experience
+  isActive      Boolean @default(true) @map("is_active")
+  sortOrder     Int     @default(0) @map("sort_order")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  user           User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  branches       DoctorBranch[]
+  schedules      DoctorSchedule[]
+  appointments   Appointment[]
+  medicalRecords MedicalRecord[]
+
+  @@map("doctors")
+}
+
+model DoctorBranch {
+  id       String @id @default(uuid()) @db.Uuid
+  doctorId String @map("doctor_id") @db.Uuid
+  branchId String @map("branch_id") @db.Uuid
+
+  doctor Doctor @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+  branch Branch @relation(fields: [branchId], references: [id], onDelete: Cascade)
+
+  @@unique([doctorId, branchId])
+  @@map("doctor_branches")
+}
+
+model DoctorSchedule {
+  id        String    @id @default(uuid()) @db.Uuid
+  doctorId  String    @map("doctor_id") @db.Uuid
+  branchId  String    @map("branch_id") @db.Uuid
+  dayOfWeek DayOfWeek @map("day_of_week")
+  startTime String    @map("start_time") // "08:00"
+  endTime   String    @map("end_time")   // "16:00"
+  maxSlots  Int       @default(20) @map("max_slots")
+  isActive  Boolean   @default(true) @map("is_active")
+
+  doctor Doctor @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+  branch Branch @relation(fields: [branchId], references: [id], onDelete: Cascade)
+
+  @@map("doctor_schedules")
+}
+
+// ============================================================
+// BRANCH MANAGEMENT
+// ============================================================
+
+model Branch {
+  id             String   @id @default(uuid()) @db.Uuid
+  name           String
+  slug           String   @unique
+  address        String
+  city           String
+  province       String?
+  phone          String?
+  email          String?
+  photoUrl       String?  @map("photo_url")
+  facilities     Json?    @default("[]")
+  operatingHours Json?    @map("operating_hours")
+  latitude       Float?
+  longitude      Float?
+  isActive       Boolean  @default(true) @map("is_active")
+  sortOrder      Int      @default(0) @map("sort_order")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  doctors          DoctorBranch[]
+  schedules        DoctorSchedule[]
+  appointments     Appointment[]
+  queues           Queue[]
+  admins           User[]            @relation("BranchAdmins")
+  productStocks    ProductStock[]
+  posTransactions  PosTransaction[]
+  stockAdjustments StockAdjustment[]
+  transfersFrom    StockTransfer[]   @relation("TransferFrom")
+  transfersTo      StockTransfer[]   @relation("TransferTo")
+
+  @@map("branches")
+}
+
+// ============================================================
+// SERVICE MANAGEMENT
+// ============================================================
+
+model Service {
+  id          String  @id @default(uuid()) @db.Uuid
+  name        String
+  slug        String  @unique
+  description String? @db.Text
+  iconUrl     String? @map("icon_url")
+  imageUrl    String? @map("image_url")
+  category    String?
+  price       Decimal? @db.Decimal(12, 2)
+  isActive    Boolean @default(true) @map("is_active")
+  sortOrder   Int     @default(0) @map("sort_order")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  appointments Appointment[]
+
+  @@map("services")
+}
+
+// ============================================================
+// APPOINTMENT & QUEUE
+// ============================================================
+
+model Appointment {
+  id              String            @id @default(uuid()) @db.Uuid
+  appointmentNo   String            @unique @map("appointment_no")
+  patientId       String            @map("patient_id") @db.Uuid
+  doctorId        String            @map("doctor_id") @db.Uuid
+  branchId        String            @map("branch_id") @db.Uuid
+  serviceId       String?           @map("service_id") @db.Uuid
+  appointmentDate DateTime          @map("appointment_date") @db.Date
+  appointmentTime String            @map("appointment_time") // "09:00"
+  status          AppointmentStatus @default(PENDING)
+  notes           String?           @db.Text
+  cancelReason    String?           @map("cancel_reason")
+  createdAt       DateTime          @default(now()) @map("created_at")
+  updatedAt       DateTime          @updatedAt @map("updated_at")
+
+  patient        Patient        @relation(fields: [patientId], references: [id])
+  doctor         Doctor         @relation(fields: [doctorId], references: [id])
+  branch         Branch         @relation(fields: [branchId], references: [id])
+  service        Service?       @relation(fields: [serviceId], references: [id])
+  medicalRecord  MedicalRecord?
+  billing        Billing?
+  queue          Queue?
+
+  @@map("appointments")
+}
+
+model Queue {
+  id            String      @id @default(uuid()) @db.Uuid
+  appointmentId String      @unique @map("appointment_id") @db.Uuid
+  branchId      String      @map("branch_id") @db.Uuid
+  queueNumber   Int         @map("queue_number")
+  status        QueueStatus @default(WAITING)
+  calledAt      DateTime?   @map("called_at")
+  completedAt   DateTime?   @map("completed_at")
+  createdAt     DateTime    @default(now()) @map("created_at")
+
+  appointment Appointment @relation(fields: [appointmentId], references: [id])
+  branch      Branch      @relation(fields: [branchId], references: [id])
+
+  @@map("queues")
+}
+
+// ============================================================
+// MEDICAL RECORDS (EMR)
+// ============================================================
+
+model MedicalRecord {
+  id            String   @id @default(uuid()) @db.Uuid
+  appointmentId String   @unique @map("appointment_id") @db.Uuid
+  patientId     String   @map("patient_id") @db.Uuid
+  doctorId      String   @map("doctor_id") @db.Uuid
+  subjective    String?  @db.Text
+  objective     String?  @db.Text
+  assessment    String?  @db.Text
+  plan          String?  @db.Text
+  vitalSigns    Json?    @map("vital_signs")
+  diagnosis     Json?    @default("[]")
+  prescriptions Json?    @default("[]")
+  labOrders     Json?    @default("[]") @map("lab_orders")
+  notes         String?  @db.Text
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  appointment Appointment @relation(fields: [appointmentId], references: [id])
+  patient     Patient     @relation(fields: [patientId], references: [id])
+  doctor      Doctor      @relation(fields: [doctorId], references: [id])
+
+  @@map("medical_records")
+}
+
+// ============================================================
+// BILLING & PAYMENT
+// ============================================================
+
+model Billing {
+  id            String        @id @default(uuid()) @db.Uuid
+  invoiceNumber String        @unique @map("invoice_number")
+  appointmentId String        @unique @map("appointment_id") @db.Uuid
+  patientId     String        @map("patient_id") @db.Uuid
+  items         Json          @default("[]")
+  subtotal      Decimal       @db.Decimal(12, 2)
+  discount      Decimal       @default(0) @db.Decimal(12, 2)
+  tax           Decimal       @default(0) @db.Decimal(12, 2)
+  totalAmount   Decimal       @map("total_amount") @db.Decimal(12, 2)
+  status        BillingStatus @default(DRAFT)
+  dueDate       DateTime?     @map("due_date") @db.Date
+  paidAt        DateTime?     @map("paid_at")
+  createdAt     DateTime      @default(now()) @map("created_at")
+  updatedAt     DateTime      @updatedAt @map("updated_at")
+
+  appointment Appointment @relation(fields: [appointmentId], references: [id])
+  patient     Patient     @relation(fields: [patientId], references: [id])
+  payments    Payment[]
+
+  @@map("billings")
+}
+
+model Payment {
+  id            String        @id @default(uuid()) @db.Uuid
+  billingId     String        @map("billing_id") @db.Uuid
+  amount        Decimal       @db.Decimal(12, 2)
+  method        PaymentMethod
+  referenceNo   String?       @map("reference_no")
+  notes         String?
+  paidAt        DateTime      @default(now()) @map("paid_at")
+
+  billing Billing @relation(fields: [billingId], references: [id])
+
+  @@map("payments")
+}
+
+// ============================================================
+// PHARMACY & INVENTORY
+// ============================================================
+
+model Medicine {
+  id          String   @id @default(uuid()) @db.Uuid
+  code        String   @unique
+  name        String
+  genericName String?  @map("generic_name")
+  category    String?
+  unit        String   // tablet, capsule, botol, dll
+  price       Decimal  @db.Decimal(12, 2)
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  productStocks    ProductStock[]
+  posItems         PosTransactionItem[]
+  stockAdjustments StockAdjustment[]
+  stockTransfers   StockTransfer[]
+
+  @@map("medicines")
+}
+
+// Stock obat per-branch (join = transfer antar cabang)
+model ProductStock {
+  id         String   @id @default(uuid()) @db.Uuid
+  medicineId String   @map("medicine_id") @db.Uuid
+  branchId   String   @map("branch_id") @db.Uuid
+  quantity   Int      @default(0)
+  minStock   Int      @default(5) @map("min_stock")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  medicine Medicine @relation(fields: [medicineId], references: [id], onDelete: Cascade)
+  branch   Branch   @relation(fields: [branchId], references: [id], onDelete: Cascade)
+
+  @@unique([medicineId, branchId])
+  @@map("product_stocks")
+}
+
+// POS transaksi penjualan obat
+model PosTransaction {
+  id            String        @id @default(uuid()) @db.Uuid
+  transactionNo String        @unique @map("transaction_no")
+  branchId      String        @map("branch_id") @db.Uuid
+  cashierId     String        @map("cashier_id") @db.Uuid
+  patientId     String?       @map("patient_id") @db.Uuid
+  totalAmount   Decimal       @map("total_amount") @db.Decimal(12, 2)
+  paidAmount    Decimal       @map("paid_amount") @db.Decimal(12, 2)
+  changeAmount  Decimal       @map("change_amount") @db.Decimal(12, 2)
+  paymentMethod PaymentMethod @default(CASH) @map("payment_method")
+  notes         String?       @db.Text
+  createdAt     DateTime      @default(now()) @map("created_at")
+
+  branch   Branch               @relation(fields: [branchId], references: [id])
+  cashier  User                 @relation("CashierTransactions", fields: [cashierId], references: [id])
+  patient  Patient?             @relation(fields: [patientId], references: [id])
+  items    PosTransactionItem[]
+
+  @@map("pos_transactions")
+}
+
+model PosTransactionItem {
+  id            String  @id @default(uuid()) @db.Uuid
+  transactionId String  @map("transaction_id") @db.Uuid
+  medicineId    String  @map("medicine_id") @db.Uuid
+  quantity      Int
+  unitPrice     Decimal @map("unit_price") @db.Decimal(12, 2)
+  subtotal      Decimal @db.Decimal(12, 2)
+
+  transaction PosTransaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  medicine    Medicine       @relation(fields: [medicineId], references: [id])
+
+  @@map("pos_transaction_items")
+}
+
+// Audit log semua perubahan stok
+model StockAdjustment {
+  id         String   @id @default(uuid()) @db.Uuid
+  medicineId String   @map("medicine_id") @db.Uuid
+  branchId   String   @map("branch_id") @db.Uuid
+  userId     String   @map("user_id") @db.Uuid
+  type       String   // IN, OUT, ADJUSTMENT, TRANSFER_IN, TRANSFER_OUT, SALE
+  quantity   Int      // positif = tambah, negatif = kurang
+  reason     String?
+  refId      String?  @map("ref_id")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  medicine Medicine @relation(fields: [medicineId], references: [id])
+  branch   Branch   @relation(fields: [branchId], references: [id])
+  user     User     @relation("StockAdjustUser", fields: [userId], references: [id])
+
+  @@map("stock_adjustments")
+}
+
+// Transfer stok antar cabang (join inventory)
+model StockTransfer {
+  id            String   @id @default(uuid()) @db.Uuid
+  medicineId    String   @map("medicine_id") @db.Uuid
+  fromBranchId  String   @map("from_branch_id") @db.Uuid
+  toBranchId    String   @map("to_branch_id") @db.Uuid
+  quantity      Int
+  requestedById String   @map("requested_by_id") @db.Uuid
+  approvedById  String?  @map("approved_by_id") @db.Uuid
+  status        String   @default("PENDING") // PENDING, APPROVED, REJECTED
+  notes         String?
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  medicine     Medicine @relation(fields: [medicineId], references: [id])
+  fromBranch   Branch   @relation("TransferFrom", fields: [fromBranchId], references: [id])
+  toBranch     Branch   @relation("TransferTo", fields: [toBranchId], references: [id])
+  requestedBy  User     @relation("TransferRequester", fields: [requestedById], references: [id])
+  approvedBy   User?    @relation("TransferApprover", fields: [approvedById], references: [id])
+
+  @@map("stock_transfers")
+}
+
+// ============================================================
+// PROMOTIONS & ARTICLES (CMS)
+// ============================================================
+
+model Promotion {
+  id          String    @id @default(uuid()) @db.Uuid
+  title       String
+  slug        String    @unique
+  description String?   @db.Text
+  imageUrl    String?   @map("image_url")
+  terms       String?   @db.Text
+  startDate   DateTime  @map("start_date") @db.Date
+  endDate     DateTime  @map("end_date") @db.Date
+  isActive    Boolean   @default(true) @map("is_active")
+  sortOrder   Int       @default(0) @map("sort_order")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  @@map("promotions")
+}
+
+model Article {
+  id          String        @id @default(uuid()) @db.Uuid
+  title       String
+  slug        String        @unique
+  excerpt     String?       @db.Text
+  content     String        @db.Text
+  imageUrl    String?       @map("image_url")
+  category    String?
+  tags        Json?         @default("[]")
+  authorName  String?       @map("author_name")
+  status      ArticleStatus @default(DRAFT)
+  publishedAt DateTime?     @map("published_at")
+  viewCount   Int           @default(0) @map("view_count")
+  createdAt   DateTime      @default(now()) @map("created_at")
+  updatedAt   DateTime      @updatedAt @map("updated_at")
+
+  @@map("articles")
+}
+
+model Faq {
+  id        String   @id @default(uuid()) @db.Uuid
+  question  String
+  answer    String   @db.Text
+  category  String?
+  sortOrder Int      @default(0) @map("sort_order")
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("faqs")
+}
+
+model Testimonial {
+  id        String   @id @default(uuid()) @db.Uuid
+  name      String
+  role      String?  // "Pasien"
+  content   String   @db.Text
+  rating    Int      @default(5)
+  photoUrl  String?  @map("photo_url")
+  isActive  Boolean  @default(true) @map("is_active")
+  sortOrder Int      @default(0) @map("sort_order")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("testimonials")
+}
+
+// ============================================================
+// NOTIFICATIONS
+// ============================================================
+
+model Notification {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  title     String
+  message   String   @db.Text
+  type      String   // appointment, promo, system
+  isRead    Boolean  @default(false) @map("is_read")
+  data      Json?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("notifications")
+}
+
+// ============================================================
+// SETTINGS
+// ============================================================
+
+model Setting {
+  id    String @id @default(uuid()) @db.Uuid
+  key   String @unique
+  value Json
+  group String?
+
+  @@map("settings")
+}
+
+// ============================================================
+// AUDIT LOG
+// ============================================================
+
+model AuditLog {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String?  @map("user_id") @db.Uuid
+  action    String
+  entity    String
+  entityId  String?  @map("entity_id")
+  oldData   Json?    @map("old_data")
+  newData   Json?    @map("new_data")
+  ipAddress String?  @map("ip_address")
+  userAgent String?  @map("user_agent")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User? @relation(fields: [userId], references: [id])
+
+  @@map("audit_logs")
+}

@@ -1,0 +1,21 @@
+# dependencies
+node_modules/
+
+# build
+dist/
+build/
+
+# env — never commit real secrets
+.env
+.env.local
+.env.*.local
+
+# prisma generated client
+prisma/generated/
+
+# logs
+*.log
+npm-debug.log*
+
+# OS
+.DS_Store
