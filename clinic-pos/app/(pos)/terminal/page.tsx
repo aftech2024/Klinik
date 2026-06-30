@@ -217,8 +217,6 @@ export default function TerminalPage() {
 
   const today = new Date().toLocaleDateString('en-US', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
   const firstName = user?.name?.split(' ')[0] ?? 'Kasir';
-  const roleLabel = user?.role === 'CASHIER' ? 'Kasir' : user?.role === 'ADMIN' ? 'Admin' : 'Super Admin';
-  const initials = user ? (user.name || user.email || 'U').slice(0, 2).toUpperCase() : 'U';
 
   const quickAmounts = total > 0
     ? Array.from(new Set([
@@ -257,17 +255,6 @@ export default function TerminalPage() {
               <Bell size={18} />
             </button>
             <span style={{ position: 'absolute', top: 0, right: 0, width: 16, height: 16, borderRadius: '50%', background: '#ef4444', color: '#fff', fontSize: 9, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>2</span>
-          </div>
-
-          {/* User */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <div style={{ textAlign: 'right' }}>
-              <div style={{ fontSize: '0.7rem', color: '#94a3b8' }}>Hi, I&apos;m {roleLabel}</div>
-              <div style={{ fontSize: '0.875rem', fontWeight: 700, color: '#1e293b' }}>{user?.name || 'User'}</div>
-            </div>
-            <div style={{ width: 40, height: 40, borderRadius: '50%', background: '#dcfce7', color: '#16a34a', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.8rem', fontWeight: 700 }}>
-              {initials}
-            </div>
           </div>
         </div>
       </div>
