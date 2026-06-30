@@ -12,8 +12,26 @@ type Transfer = {
   requestedBy: { name: string }; approvedBy?: { name: string } | null;
 };
 
-const STATUS_COLOR = { PENDING: 'bg-amber-900/50 text-amber-400', APPROVED: 'bg-emerald-900/50 text-emerald-400', REJECTED: 'bg-red-900/50 text-red-400' };
+const GREEN = '#3DB549';
+
+const STATUS_STYLE = {
+  PENDING: { bg: '#fffbeb', color: '#d97706', border: '#fde68a' },
+  APPROVED: { bg: '#f0fdf4', color: GREEN, border: '#bbf7d0' },
+  REJECTED: { bg: '#fef2f2', color: '#ef4444', border: '#fecaca' },
+};
 const STATUS_LABEL = { PENDING: 'Menunggu', APPROVED: 'Disetujui', REJECTED: 'Ditolak' };
+
+const INPUT_STYLE: React.CSSProperties = {
+  width: '100%', background: '#f8fafc', border: '1px solid #e2e8f0',
+  borderRadius: 12, padding: '10px 14px',
+  fontSize: '0.85rem', color: '#334155', outline: 'none',
+};
+const SELECT_STYLE: React.CSSProperties = {
+  ...{} as React.CSSProperties,
+  width: '100%', background: '#f8fafc', border: '1px solid #e2e8f0',
+  borderRadius: 12, padding: '10px 14px',
+  fontSize: '0.85rem', color: '#334155', outline: 'none',
+};
 
 function RequestModal({ medicines, branches, myBranchId, onClose, onDone }: {
   medicines: Medicine[]; branches: Branch[]; myBranchId: string | null;
@@ -38,59 +56,72 @@ function RequestModal({ medicines, branches, myBranchId, onClose, onDone }: {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-md text-white">
-        <div className="flex items-center justify-between p-5 border-b border-slate-800">
+    <div style={{ position: 'fixed', inset: 0, zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+      <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.35)', backdropFilter: 'blur(4px)' }} onClick={onClose} />
+      <div style={{ position: 'relative', background: '#fff', borderRadius: 20, width: '100%', maxWidth: 440, boxShadow: '0 20px 60px rgba(0,0,0,0.15)' }}>
+        <div style={{ padding: '20px 20px 16px', borderBottom: '1px solid #f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div>
-            <h3 className="font-semibold">Request Transfer Stok</h3>
-            <p className="text-xs text-slate-400">Perlu persetujuan Super Admin</p>
+            <h3 style={{ fontWeight: 700, color: '#1e293b', margin: 0 }}>Request Transfer Stok</h3>
+            <p style={{ fontSize: '0.75rem', color: '#94a3b8', margin: '3px 0 0' }}>Perlu persetujuan Super Admin</p>
           </div>
-          <button onClick={onClose} className="w-8 h-8 rounded-xl hover:bg-slate-800 flex items-center justify-center text-slate-500"><X size={15} /></button>
+          <button onClick={onClose} style={{ width: 32, height: 32, borderRadius: 10, border: 'none', background: '#f1f5f9', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b' }}>
+            <X size={15} />
+          </button>
         </div>
-        <div className="p-5 space-y-4">
-          {error && <div className="px-3 py-2 bg-red-900/50 text-red-300 text-sm rounded-xl">{error}</div>}
+        <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 14 }}>
+          {error && <div style={{ padding: '10px 14px', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 12, fontSize: '0.8rem', color: '#ef4444' }}>{error}</div>}
+
+          {[
+            { label: 'Obat', field: 'medicineId', type: 'select', options: medicines.map(m => ({ value: m.id, label: `${m.name} (${m.unit})` })), placeholder: '-- Pilih obat --' },
+            { label: 'Dari Cabang', field: 'fromBranchId', type: 'select', options: branches.filter(b => b.id !== form.toBranchId).map(b => ({ value: b.id, label: `${b.name} — ${b.city}` })), placeholder: '-- Pilih cabang asal --' },
+          ].map(({ label, field, options, placeholder }) => (
+            <div key={field}>
+              <label style={{ display: 'block', fontSize: '0.72rem', color: '#94a3b8', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6 }}>{label}</label>
+              <select value={(form as any)[field]} onChange={e => set(field as keyof typeof form, e.target.value)} style={SELECT_STYLE}
+                onFocus={e => { e.target.style.borderColor = GREEN; }}
+                onBlur={e => { e.target.style.borderColor = '#e2e8f0'; }}>
+                <option value="">{placeholder}</option>
+                {options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+              </select>
+            </div>
+          ))}
+
           <div>
-            <label className="block text-xs text-slate-400 uppercase tracking-wider mb-1.5">Obat</label>
-            <select value={form.medicineId} onChange={e => set('medicineId', e.target.value)} className="w-full bg-slate-800 border border-slate-700 text-white rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
-              <option value="">-- Pilih obat --</option>
-              {medicines.map(m => <option key={m.id} value={m.id}>{m.name} ({m.unit})</option>)}
-            </select>
-          </div>
-          <div>
-            <label className="block text-xs text-slate-400 uppercase tracking-wider mb-1.5">Dari Cabang</label>
-            <select value={form.fromBranchId} onChange={e => set('fromBranchId', e.target.value)} className="w-full bg-slate-800 border border-slate-700 text-white rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
-              <option value="">-- Pilih cabang asal --</option>
-              {branches.filter(b => b.id !== form.toBranchId).map(b => <option key={b.id} value={b.id}>{b.name} — {b.city}</option>)}
-            </select>
-          </div>
-          <div>
-            <label className="block text-xs text-slate-400 uppercase tracking-wider mb-1.5">Ke Cabang</label>
+            <label style={{ display: 'block', fontSize: '0.72rem', color: '#94a3b8', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6 }}>Ke Cabang</label>
             {isAdmin ? (
-              <div className="bg-slate-800 border border-slate-700 rounded-xl px-3 py-2.5 text-sm text-slate-300">
+              <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 12, padding: '10px 14px', fontSize: '0.85rem', color: '#64748b' }}>
                 {branches.find(b => b.id === myBranchId)?.name ?? 'Klinik Anda'}
               </div>
             ) : (
-              <select value={form.toBranchId} onChange={e => set('toBranchId', e.target.value)} className="w-full bg-slate-800 border border-slate-700 text-white rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
+              <select value={form.toBranchId} onChange={e => set('toBranchId', e.target.value)} style={SELECT_STYLE}
+                onFocus={e => { e.target.style.borderColor = GREEN; }}
+                onBlur={e => { e.target.style.borderColor = '#e2e8f0'; }}>
                 <option value="">-- Pilih cabang tujuan --</option>
                 {branches.filter(b => b.id !== form.fromBranchId).map(b => <option key={b.id} value={b.id}>{b.name} — {b.city}</option>)}
               </select>
             )}
           </div>
-          <div className="grid grid-cols-2 gap-3">
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
             <div>
-              <label className="block text-xs text-slate-400 uppercase tracking-wider mb-1.5">Jumlah</label>
-              <input type="number" min="1" value={form.quantity} onChange={e => set('quantity', e.target.value)} className="w-full bg-slate-800 border border-slate-700 text-white rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+              <label style={{ display: 'block', fontSize: '0.72rem', color: '#94a3b8', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6 }}>Jumlah</label>
+              <input type="number" min="1" value={form.quantity} onChange={e => set('quantity', e.target.value)} style={INPUT_STYLE}
+                onFocus={e => { e.target.style.borderColor = GREEN; }}
+                onBlur={e => { e.target.style.borderColor = '#e2e8f0'; }}
+              />
             </div>
             <div>
-              <label className="block text-xs text-slate-400 uppercase tracking-wider mb-1.5">Catatan</label>
-              <input value={form.notes} onChange={e => set('notes', e.target.value)} placeholder="Alasan..." className="w-full bg-slate-800 border border-slate-700 text-white rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+              <label style={{ display: 'block', fontSize: '0.72rem', color: '#94a3b8', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6 }}>Catatan</label>
+              <input value={form.notes} onChange={e => set('notes', e.target.value)} placeholder="Alasan..." style={INPUT_STYLE}
+                onFocus={e => { e.target.style.borderColor = GREEN; }}
+                onBlur={e => { e.target.style.borderColor = '#e2e8f0'; }}
+              />
             </div>
           </div>
         </div>
-        <div className="px-5 pb-5 flex gap-3">
-          <button onClick={onClose} className="flex-1 py-2.5 text-sm text-slate-400 bg-slate-800 hover:bg-slate-700 rounded-xl">Batal</button>
-          <button onClick={submit} disabled={saving} className="flex-1 py-2.5 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 rounded-xl">
+        <div style={{ padding: '0 20px 20px', display: 'flex', gap: 10 }}>
+          <button onClick={onClose} style={{ flex: 1, padding: '11px', fontSize: '0.85rem', color: '#64748b', background: '#f1f5f9', border: 'none', borderRadius: 12, cursor: 'pointer', fontWeight: 600 }}>Batal</button>
+          <button onClick={submit} disabled={saving} style={{ flex: 1, padding: '11px', fontSize: '0.85rem', fontWeight: 700, color: '#fff', background: '#3b82f6', border: 'none', borderRadius: 12, cursor: saving ? 'not-allowed' : 'pointer', opacity: saving ? 0.7 : 1 }}>
             {saving ? '...' : 'Kirim Request'}
           </button>
         </div>
@@ -117,9 +148,7 @@ export default function TransfersPage() {
       api.get('/api/pharmacy/medicines').then(r => r.data ?? []).catch(() => []),
       api.get('/api/branches').then(r => Array.isArray(r.data) ? r.data : (r.data.data ?? [])).catch(() => []),
     ]);
-    setTransfers(t);
-    setMedicines(m);
-    setBranches(b);
+    setTransfers(t); setMedicines(m); setBranches(b);
     setLoading(false);
   }, []);
 
@@ -144,68 +173,75 @@ export default function TransfersPage() {
   const pending = transfers.filter(t => t.status === 'PENDING').length;
 
   return (
-    <div className="p-5 space-y-5">
-      <div className="flex items-center justify-between flex-wrap gap-3">
+    <div style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 20, height: '100%', overflowY: 'auto' }} className="scrollbar-hide">
+
+      {/* Header */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
         <div>
-          <h1 className="text-xl font-bold text-white">Transfer Stok</h1>
-          <p className="text-slate-400 text-sm mt-0.5">Join inventory antar cabang</p>
+          <h1 style={{ fontSize: '1.15rem', fontWeight: 700, color: '#1e293b', margin: 0 }}>Transfer Stok</h1>
+          <p style={{ fontSize: '0.8rem', color: '#94a3b8', marginTop: 3 }}>Perpindahan inventori antar cabang</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           {pending > 0 && isSuper && (
-            <div className="flex items-center gap-1.5 bg-amber-900/30 border border-amber-800 text-amber-400 text-xs font-semibold px-3 py-1.5 rounded-xl">
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#fffbeb', border: '1px solid #fde68a', color: '#d97706', fontSize: '0.75rem', fontWeight: 600, padding: '6px 12px', borderRadius: 10 }}>
               <Clock size={13} /> {pending} menunggu
             </div>
           )}
-          <button onClick={load} className="w-9 h-9 flex items-center justify-center rounded-xl border border-slate-700 text-slate-400 hover:text-white">
+          <button onClick={load} style={{ width: 38, height: 38, borderRadius: 12, border: '1px solid #e2e8f0', background: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b' }}>
             <RefreshCw size={14} />
           </button>
-          <button onClick={() => setRequesting(true)} className="flex items-center gap-1.5 text-sm bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl font-semibold">
+          <button onClick={() => setRequesting(true)} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.85rem', fontWeight: 700, padding: '9px 16px', borderRadius: 12, background: '#3b82f6', color: '#fff', border: 'none', cursor: 'pointer', boxShadow: '0 4px 12px rgba(59,130,246,0.25)' }}>
             <Plus size={14} /> Request
           </button>
         </div>
       </div>
 
+      {/* List */}
       {loading ? (
-        <div className="space-y-2">{Array.from({ length: 4 }).map((_, i) => <div key={i} className="h-20 bg-slate-900 border border-slate-800 rounded-2xl animate-pulse" />)}</div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {Array.from({ length: 4 }).map((_, i) => <div key={i} style={{ height: 76, background: '#f1f5f9', borderRadius: 16 }} />)}
+        </div>
       ) : transfers.length === 0 ? (
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-12 text-center">
-          <ArrowRight size={36} className="text-slate-700 mx-auto mb-3" />
-          <p className="text-slate-500 text-sm">Belum ada request transfer.</p>
+        <div style={{ background: '#fff', border: '1px solid #f1f5f9', borderRadius: 20, padding: 48, textAlign: 'center' }}>
+          <ArrowRight size={36} style={{ color: '#cbd5e1', margin: '0 auto 12px' }} />
+          <p style={{ color: '#94a3b8', fontSize: '0.85rem', margin: 0 }}>Belum ada request transfer.</p>
         </div>
       ) : (
-        <div className="space-y-2">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           {transfers.map(t => {
             const busy = processing === t.id;
+            const statusStyle = STATUS_STYLE[t.status];
             return (
-              <div key={t.id} className="bg-slate-900 border border-slate-800 rounded-2xl p-4">
-                <div className="flex items-start gap-3">
-                  <div className="w-9 h-9 rounded-xl bg-blue-900/40 flex items-center justify-center flex-shrink-0">
-                    <Package size={16} className="text-blue-400" />
+              <div key={t.id} style={{ background: '#fff', border: '1px solid #f1f5f9', borderRadius: 16, padding: 16, boxShadow: '0 1px 4px rgba(0,0,0,0.04)' }}>
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+                  <div style={{ width: 40, height: 40, borderRadius: 12, background: '#eff6ff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <Package size={18} style={{ color: '#3b82f6' }} />
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="font-semibold text-white text-sm">{t.medicine.name}</span>
-                      <span className="text-xs text-slate-400">{t.quantity} {t.medicine.unit}</span>
-                      <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${STATUS_COLOR[t.status]}`}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                      <span style={{ fontWeight: 600, color: '#1e293b', fontSize: '0.875rem' }}>{t.medicine.name}</span>
+                      <span style={{ fontSize: '0.72rem', color: '#64748b' }}>{t.quantity} {t.medicine.unit}</span>
+                      <span style={{ fontSize: '0.7rem', fontWeight: 600, padding: '2px 10px', borderRadius: 999, background: statusStyle.bg, color: statusStyle.color, border: `1px solid ${statusStyle.border}` }}>
                         {STATUS_LABEL[t.status]}
                       </span>
                     </div>
-                    <div className="flex items-center gap-1.5 mt-1 text-sm text-slate-400">
-                      <span className="text-slate-300">{t.fromBranch.name}</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 5, fontSize: '0.8rem', color: '#64748b' }}>
+                      <span style={{ color: '#1e293b', fontWeight: 500 }}>{t.fromBranch.name}</span>
                       <ArrowRight size={12} />
-                      <span className="text-slate-300">{t.toBranch.name}</span>
+                      <span style={{ color: '#1e293b', fontWeight: 500 }}>{t.toBranch.name}</span>
                     </div>
-                    <div className="text-xs text-slate-500 mt-0.5">
+                    <div style={{ fontSize: '0.72rem', color: '#94a3b8', marginTop: 3 }}>
                       {t.requestedBy.name} · {new Date(t.createdAt).toLocaleDateString('id-ID')}
                       {t.notes && ` · "${t.notes}"`}
                     </div>
                   </div>
+
                   {isSuper && t.status === 'PENDING' && (
-                    <div className="flex gap-2 flex-shrink-0">
-                      <button onClick={() => reject(t.id)} disabled={busy} className="flex items-center gap-1 text-xs px-3 py-1.5 rounded-xl border border-red-800 text-red-400 hover:bg-red-900/30 disabled:opacity-50">
+                    <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
+                      <button onClick={() => reject(t.id)} disabled={busy} style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.75rem', fontWeight: 600, padding: '7px 12px', borderRadius: 10, border: '1px solid #fecaca', background: '#fef2f2', color: '#ef4444', cursor: busy ? 'not-allowed' : 'pointer', opacity: busy ? 0.6 : 1 }}>
                         <XCircle size={12} /> Tolak
                       </button>
-                      <button onClick={() => approve(t.id)} disabled={busy} className="flex items-center gap-1 text-xs px-3 py-1.5 rounded-xl bg-emerald-700 text-white hover:bg-emerald-600 disabled:opacity-50">
+                      <button onClick={() => approve(t.id)} disabled={busy} style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.75rem', fontWeight: 700, padding: '7px 12px', borderRadius: 10, border: 'none', background: GREEN, color: '#fff', cursor: busy ? 'not-allowed' : 'pointer', opacity: busy ? 0.6 : 1, boxShadow: `0 4px 12px ${GREEN}30` }}>
                         <CheckCircle size={12} /> {busy ? '...' : 'Setujui'}
                       </button>
                     </div>

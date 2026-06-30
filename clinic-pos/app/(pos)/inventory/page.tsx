@@ -2,7 +2,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import api from '@/lib/api';
 import { getUser, getActiveBranchId } from '@/lib/auth';
-import { Package, AlertTriangle, Search, RefreshCw, ArrowUpDown } from 'lucide-react';
+import { Package, AlertTriangle, Search, RefreshCw, ArrowUpDown, X } from 'lucide-react';
 
 type Stock = {
   id: string; quantity: number; minStock: number;
@@ -10,9 +10,17 @@ type Stock = {
   branch: { id: string; name: string };
 };
 
+const GREEN = '#3DB549';
+
 function fmt(n: number) {
   return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(n);
 }
+
+const INPUT_STYLE: React.CSSProperties = {
+  width: '100%', background: '#f8fafc', border: '1px solid #e2e8f0',
+  borderRadius: 12, padding: '10px 14px',
+  fontSize: '0.85rem', color: '#334155', outline: 'none',
+};
 
 function AdjustModal({ stock, onClose, onDone }: { stock: Stock; onClose: () => void; onDone: () => void }) {
   const [qty, setQty] = useState('');
@@ -29,10 +37,8 @@ function AdjustModal({ stock, onClose, onDone }: { stock: Stock; onClose: () => 
     setSaving(true);
     try {
       await api.post('/api/pharmacy/stock/adjust', {
-        medicineId: stock.medicine.id,
-        branchId: stock.branch.id,
-        quantity: type === 'OUT' ? -q : q,
-        type, reason,
+        medicineId: stock.medicine.id, branchId: stock.branch.id,
+        quantity: type === 'OUT' ? -q : q, type, reason,
       });
       onDone(); onClose();
     } catch (e: any) {
@@ -40,43 +46,62 @@ function AdjustModal({ stock, onClose, onDone }: { stock: Stock; onClose: () => 
     } finally { setSaving(false); }
   }
 
-  // CASHIER: read-only, no adjust
-  const isReadOnly = user?.role === 'CASHIER';
-  if (isReadOnly) return null;
+  if (user?.role === 'CASHIER') return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-sm text-white">
-        <div className="p-5 border-b border-slate-800">
-          <h3 className="font-semibold">Sesuaikan Stok</h3>
-          <p className="text-sm text-slate-400 mt-0.5">{stock.medicine.name}</p>
-        </div>
-        <div className="p-5 space-y-4">
-          {error && <div className="px-3 py-2 bg-red-900/50 text-red-300 text-sm rounded-xl">{error}</div>}
-          <div className="flex items-center gap-2 p-3 bg-slate-800 rounded-xl">
-            <span className="text-slate-400 text-sm">Stok saat ini:</span>
-            <span className="font-bold">{stock.quantity} {stock.medicine.unit}</span>
+    <div style={{ position: 'fixed', inset: 0, zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+      <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.35)', backdropFilter: 'blur(4px)' }} onClick={onClose} />
+      <div style={{ position: 'relative', background: '#fff', borderRadius: 20, width: '100%', maxWidth: 380, boxShadow: '0 20px 60px rgba(0,0,0,0.15)' }}>
+        <div style={{ padding: '20px 20px 16px', borderBottom: '1px solid #f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div>
+            <h3 style={{ fontWeight: 700, color: '#1e293b', margin: 0 }}>Sesuaikan Stok</h3>
+            <p style={{ fontSize: '0.8rem', color: '#94a3b8', margin: '3px 0 0' }}>{stock.medicine.name}</p>
           </div>
-          <div className="grid grid-cols-2 gap-2">
+          <button onClick={onClose} style={{ width: 32, height: 32, borderRadius: 10, border: 'none', background: '#f1f5f9', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b' }}>
+            <X size={15} />
+          </button>
+        </div>
+        <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 14 }}>
+          {error && <div style={{ padding: '10px 14px', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 12, fontSize: '0.8rem', color: '#ef4444' }}>{error}</div>}
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', background: '#f8fafc', borderRadius: 12, border: '1px solid #e2e8f0' }}>
+            <span style={{ fontSize: '0.8rem', color: '#64748b' }}>Stok saat ini:</span>
+            <span style={{ fontWeight: 700, color: '#1e293b' }}>{stock.quantity} {stock.medicine.unit}</span>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
             {(['IN', 'OUT'] as const).map(t => (
-              <button key={t} onClick={() => setType(t)} className={`py-2 text-sm font-semibold rounded-xl border transition-colors ${type === t ? (t === 'OUT' ? 'bg-red-600 border-red-600 text-white' : 'bg-emerald-600 border-emerald-600 text-white') : 'border-slate-700 text-slate-400 hover:border-slate-600'}`}>
-                {t === 'IN' ? '+ Masuk' : '- Keluar'}
+              <button key={t} onClick={() => setType(t)} style={{
+                padding: '10px', fontSize: '0.85rem', fontWeight: 600, borderRadius: 12,
+                border: '1px solid',
+                borderColor: type === t ? (t === 'OUT' ? '#ef4444' : GREEN) : '#e2e8f0',
+                background: type === t ? (t === 'OUT' ? '#fef2f2' : '#f0fdf4') : '#fff',
+                color: type === t ? (t === 'OUT' ? '#ef4444' : GREEN) : '#64748b',
+                cursor: 'pointer',
+              }}>
+                {t === 'IN' ? '+ Masuk' : '− Keluar'}
               </button>
             ))}
           </div>
+
           <div>
-            <label className="block text-xs text-slate-400 uppercase tracking-wider mb-1.5">Jumlah</label>
-            <input type="number" min="1" value={qty} onChange={e => setQty(e.target.value)} className="w-full bg-slate-800 border border-slate-700 text-white rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+            <label style={{ display: 'block', fontSize: '0.72rem', color: '#94a3b8', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6 }}>Jumlah</label>
+            <input type="number" min="1" value={qty} onChange={e => setQty(e.target.value)} style={INPUT_STYLE}
+              onFocus={e => { e.target.style.borderColor = GREEN; }}
+              onBlur={e => { e.target.style.borderColor = '#e2e8f0'; }}
+            />
           </div>
           <div>
-            <label className="block text-xs text-slate-400 uppercase tracking-wider mb-1.5">Keterangan</label>
-            <input value={reason} onChange={e => setReason(e.target.value)} placeholder="Stok masuk dari distributor..." className="w-full bg-slate-800 border border-slate-700 text-white rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+            <label style={{ display: 'block', fontSize: '0.72rem', color: '#94a3b8', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6 }}>Keterangan</label>
+            <input value={reason} onChange={e => setReason(e.target.value)} placeholder="Stok masuk dari distributor..." style={INPUT_STYLE}
+              onFocus={e => { e.target.style.borderColor = GREEN; }}
+              onBlur={e => { e.target.style.borderColor = '#e2e8f0'; }}
+            />
           </div>
         </div>
-        <div className="px-5 pb-5 flex gap-3">
-          <button onClick={onClose} className="flex-1 py-2.5 text-sm font-medium text-slate-400 bg-slate-800 hover:bg-slate-700 rounded-xl">Batal</button>
-          <button onClick={submit} disabled={saving} className="flex-1 py-2.5 text-sm font-semibold text-white bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 rounded-xl">
+        <div style={{ padding: '0 20px 20px', display: 'flex', gap: 10 }}>
+          <button onClick={onClose} style={{ flex: 1, padding: '11px', fontSize: '0.85rem', color: '#64748b', background: '#f1f5f9', border: 'none', borderRadius: 12, cursor: 'pointer', fontWeight: 600 }}>Batal</button>
+          <button onClick={submit} disabled={saving} style={{ flex: 1, padding: '11px', fontSize: '0.85rem', fontWeight: 700, color: '#fff', background: GREEN, border: 'none', borderRadius: 12, cursor: saving ? 'not-allowed' : 'pointer', opacity: saving ? 0.7 : 1 }}>
             {saving ? '...' : 'Simpan'}
           </button>
         </div>
@@ -110,87 +135,121 @@ export default function InventoryPage() {
   const low = stocks.filter(s => s.quantity <= s.minStock).length;
 
   return (
-    <div className="p-5 space-y-5">
+    <div style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 20, height: '100%', overflowY: 'auto' }} className="scrollbar-hide">
+
+      {/* Header */}
       <div>
-        <h1 className="text-xl font-bold text-white">Stok Obat</h1>
-        <p className="text-slate-400 text-sm mt-0.5">{isSuper ? 'Semua cabang' : 'Klinik ini'}</p>
+        <h1 style={{ fontSize: '1.15rem', fontWeight: 700, color: '#1e293b', margin: 0 }}>Stok Obat</h1>
+        <p style={{ fontSize: '0.8rem', color: '#94a3b8', marginTop: 3 }}>{isSuper ? 'Semua cabang' : 'Klinik ini'}</p>
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-3 gap-3">
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4">
-          <div className="text-2xl font-bold text-white">{stocks.length}</div>
-          <div className="text-xs text-slate-500 mt-0.5">Jenis Obat</div>
-        </div>
-        <div className={`rounded-2xl border p-4 ${low > 0 ? 'bg-red-900/20 border-red-800' : 'bg-slate-900 border-slate-800'}`}>
-          <div className={`text-2xl font-bold ${low > 0 ? 'text-red-400' : 'text-white'}`}>{low}</div>
-          <div className={`text-xs mt-0.5 ${low > 0 ? 'text-red-500' : 'text-slate-500'}`}>Stok Menipis</div>
-        </div>
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4">
-          <div className="text-2xl font-bold text-white">{stocks.reduce((s, x) => s + x.quantity, 0)}</div>
-          <div className="text-xs text-slate-500 mt-0.5">Total Unit</div>
-        </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 12 }}>
+        {[
+          { value: stocks.length, label: 'Jenis Obat', color: '#1e293b', bg: '#fff', border: '#f1f5f9' },
+          { value: low, label: 'Stok Menipis', color: low > 0 ? '#ef4444' : '#1e293b', bg: low > 0 ? '#fef2f2' : '#fff', border: low > 0 ? '#fecaca' : '#f1f5f9' },
+          { value: stocks.reduce((s, x) => s + x.quantity, 0), label: 'Total Unit', color: '#1e293b', bg: '#fff', border: '#f1f5f9' },
+        ].map((stat, i) => (
+          <div key={i} style={{ background: stat.bg, border: `1px solid ${stat.border}`, borderRadius: 16, padding: '16px 20px', boxShadow: '0 1px 4px rgba(0,0,0,0.04)' }}>
+            <div style={{ fontSize: '1.6rem', fontWeight: 800, color: stat.color }}>{stat.value}</div>
+            <div style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: 2 }}>{stat.label}</div>
+          </div>
+        ))}
       </div>
 
       {/* Controls */}
-      <div className="flex gap-3 flex-wrap">
-        <div className="relative flex-1 min-w-[180px]">
-          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
-          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Cari obat..." className="w-full bg-slate-900 border border-slate-700 text-white rounded-xl pl-9 pr-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 placeholder-slate-600" />
+      <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+        <div style={{ position: 'relative', flex: 1, minWidth: 180 }}>
+          <Search size={14} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: '#94a3b8', pointerEvents: 'none' }} />
+          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Cari obat..."
+            style={{ ...{ width: '100%', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 12, padding: '9px 14px 9px 32px', fontSize: '0.8rem', color: '#334155', outline: 'none' } }}
+            onFocus={e => { e.target.style.borderColor = GREEN; e.target.style.background = '#fff'; }}
+            onBlur={e => { e.target.style.borderColor = '#e2e8f0'; e.target.style.background = '#f8fafc'; }}
+          />
         </div>
-        <button onClick={() => setLowOnly(p => !p)} className={`flex items-center gap-1.5 text-sm px-4 py-2 rounded-xl border font-medium transition-colors ${lowOnly ? 'bg-red-600 border-red-600 text-white' : 'border-slate-700 text-slate-400 hover:border-slate-600'}`}>
-          <AlertTriangle size={14} /> Menipis
+        <button onClick={() => setLowOnly(p => !p)} style={{
+          display: 'flex', alignItems: 'center', gap: 6,
+          fontSize: '0.8rem', fontWeight: 600, padding: '9px 16px', borderRadius: 12,
+          border: '1px solid', cursor: 'pointer',
+          borderColor: lowOnly ? '#ef4444' : '#e2e8f0',
+          background: lowOnly ? '#fef2f2' : '#fff',
+          color: lowOnly ? '#ef4444' : '#64748b',
+        }}>
+          <AlertTriangle size={13} /> Menipis
         </button>
-        <button onClick={load} className="w-9 h-9 flex items-center justify-center rounded-xl border border-slate-700 text-slate-400 hover:text-white">
+        <button onClick={load} style={{ width: 38, height: 38, borderRadius: 12, border: '1px solid #e2e8f0', background: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b' }}>
           <RefreshCw size={14} />
         </button>
       </div>
 
       {/* Table */}
       {loading ? (
-        <div className="space-y-2">{Array.from({ length: 6 }).map((_, i) => <div key={i} className="h-14 bg-slate-900 border border-slate-800 rounded-2xl animate-pulse" />)}</div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {Array.from({ length: 6 }).map((_, i) => <div key={i} style={{ height: 52, background: '#f1f5f9', borderRadius: 12 }} />)}
+        </div>
       ) : stocks.length === 0 ? (
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-12 text-center">
-          <Package size={36} className="text-slate-700 mx-auto mb-3" />
-          <p className="text-slate-500 text-sm">Belum ada stok.</p>
+        <div style={{ background: '#fff', border: '1px solid #f1f5f9', borderRadius: 20, padding: 48, textAlign: 'center' }}>
+          <Package size={36} style={{ color: '#cbd5e1', margin: '0 auto 12px' }} />
+          <p style={{ color: '#94a3b8', fontSize: '0.85rem', margin: 0 }}>Belum ada stok.</p>
         </div>
       ) : (
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden">
-          <table className="w-full text-sm">
-            <thead className="bg-slate-800">
-              <tr>
-                <th className="text-left px-5 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">Obat</th>
-                {isSuper && <th className="text-left px-4 py-3 text-xs font-semibold text-slate-400 uppercase">Cabang</th>}
-                <th className="text-left px-4 py-3 text-xs font-semibold text-slate-400 uppercase">Harga</th>
-                <th className="text-center px-4 py-3 text-xs font-semibold text-slate-400 uppercase">Stok</th>
-                <th className="text-center px-4 py-3 text-xs font-semibold text-slate-400 uppercase">Status</th>
-                {canAdjust && <th className="text-right px-4 py-3 text-xs font-semibold text-slate-400 uppercase">Aksi</th>}
+        <div style={{ background: '#fff', border: '1px solid #f1f5f9', borderRadius: 20, overflow: 'hidden', boxShadow: '0 1px 4px rgba(0,0,0,0.04)' }}>
+          <table style={{ width: '100%', fontSize: '0.85rem', borderCollapse: 'collapse' }}>
+            <thead>
+              <tr style={{ background: '#f8fafc', borderBottom: '1px solid #f1f5f9' }}>
+                <th style={{ textAlign: 'left', padding: '12px 20px', fontSize: '0.7rem', fontWeight: 600, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Obat</th>
+                {isSuper && <th style={{ textAlign: 'left', padding: '12px 16px', fontSize: '0.7rem', fontWeight: 600, color: '#94a3b8', textTransform: 'uppercase' }}>Cabang</th>}
+                <th style={{ textAlign: 'left', padding: '12px 16px', fontSize: '0.7rem', fontWeight: 600, color: '#94a3b8', textTransform: 'uppercase' }}>Harga</th>
+                <th style={{ textAlign: 'center', padding: '12px 16px', fontSize: '0.7rem', fontWeight: 600, color: '#94a3b8', textTransform: 'uppercase' }}>Stok</th>
+                <th style={{ textAlign: 'center', padding: '12px 16px', fontSize: '0.7rem', fontWeight: 600, color: '#94a3b8', textTransform: 'uppercase' }}>Status</th>
+                {canAdjust && <th style={{ textAlign: 'right', padding: '12px 16px', fontSize: '0.7rem', fontWeight: 600, color: '#94a3b8', textTransform: 'uppercase' }}>Aksi</th>}
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-800">
-              {stocks.map(s => {
+            <tbody>
+              {stocks.map((s, idx) => {
                 const isLow = s.quantity <= s.minStock;
                 return (
-                  <tr key={s.id} className={`hover:bg-slate-800/40 transition-colors ${isLow ? 'bg-red-900/10' : ''}`}>
-                    <td className="px-5 py-3.5">
-                      <div className="font-medium text-white">{s.medicine.name}</div>
-                      <div className="text-xs text-slate-500">{s.medicine.code} · {s.medicine.unit}</div>
+                  <tr key={s.id} style={{
+                    borderBottom: idx < stocks.length - 1 ? '1px solid #f8fafc' : 'none',
+                    background: isLow ? '#fff7f7' : '#fff',
+                  }}>
+                    <td style={{ padding: '13px 20px' }}>
+                      <div style={{ fontWeight: 600, color: '#1e293b' }}>{s.medicine.name}</div>
+                      <div style={{ fontSize: '0.72rem', color: '#94a3b8' }}>{s.medicine.code} · {s.medicine.unit}</div>
                     </td>
-                    {isSuper && <td className="px-4 py-3.5"><span className="text-xs bg-slate-800 text-slate-300 px-2 py-1 rounded-full">{s.branch.name}</span></td>}
-                    <td className="px-4 py-3.5 text-emerald-400 font-medium">{fmt(s.medicine.price)}</td>
-                    <td className="px-4 py-3.5 text-center">
-                      <span className={`font-bold ${isLow ? 'text-red-400' : 'text-white'}`}>{s.quantity}</span>
-                      <span className="text-slate-500 text-xs ml-1">/{s.minStock}</span>
+                    {isSuper && (
+                      <td style={{ padding: '13px 16px' }}>
+                        <span style={{ fontSize: '0.72rem', background: '#f1f5f9', color: '#475569', padding: '3px 10px', borderRadius: 999 }}>{s.branch.name}</span>
+                      </td>
+                    )}
+                    <td style={{ padding: '13px 16px', fontWeight: 600, color: GREEN }}>{fmt(s.medicine.price)}</td>
+                    <td style={{ padding: '13px 16px', textAlign: 'center' }}>
+                      <span style={{ fontWeight: 700, color: isLow ? '#ef4444' : '#1e293b' }}>{s.quantity}</span>
+                      <span style={{ color: '#94a3b8', fontSize: '0.72rem' }}>/{s.minStock}</span>
                     </td>
-                    <td className="px-4 py-3.5 text-center">
-                      <span className={`inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full ${isLow ? 'bg-red-900/60 text-red-400' : 'bg-emerald-900/60 text-emerald-400'}`}>
+                    <td style={{ padding: '13px 16px', textAlign: 'center' }}>
+                      <span style={{
+                        display: 'inline-flex', alignItems: 'center', gap: 4,
+                        fontSize: '0.7rem', fontWeight: 600, padding: '3px 10px', borderRadius: 999,
+                        background: isLow ? '#fef2f2' : '#f0fdf4',
+                        color: isLow ? '#ef4444' : GREEN,
+                      }}>
                         {isLow && <AlertTriangle size={9} />}
                         {isLow ? 'Menipis' : 'Aman'}
                       </span>
                     </td>
                     {canAdjust && (
-                      <td className="px-4 py-3.5 text-right">
-                        <button onClick={() => setAdjusting(s)} className="inline-flex items-center gap-1 text-xs text-emerald-400 hover:text-emerald-300 bg-emerald-900/30 hover:bg-emerald-900/50 px-3 py-1.5 rounded-lg font-medium">
+                      <td style={{ padding: '13px 16px', textAlign: 'right' }}>
+                        <button onClick={() => setAdjusting(s)} style={{
+                          display: 'inline-flex', alignItems: 'center', gap: 4,
+                          fontSize: '0.75rem', fontWeight: 600,
+                          padding: '6px 12px', borderRadius: 8,
+                          background: '#f0fdf4', border: 'none', cursor: 'pointer',
+                          color: GREEN,
+                        }}
+                          onMouseEnter={e => e.currentTarget.style.background = '#dcfce7'}
+                          onMouseLeave={e => e.currentTarget.style.background = '#f0fdf4'}
+                        >
                           <ArrowUpDown size={11} /> Sesuaikan
                         </button>
                       </td>

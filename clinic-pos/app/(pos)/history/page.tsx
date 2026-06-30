@@ -13,11 +13,19 @@ type Transaction = {
   branch: { name: string };
 };
 
+const GREEN = '#3DB549';
+
 function fmt(n: number | string) {
   return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(Number(n));
 }
 
 const today = new Date().toISOString().split('T')[0];
+
+const INPUT_STYLE: React.CSSProperties = {
+  background: '#f8fafc', border: '1px solid #e2e8f0',
+  borderRadius: 12, padding: '8px 14px',
+  fontSize: '0.8rem', color: '#334155', outline: 'none',
+};
 
 export default function HistoryPage() {
   const [trxs, setTrxs] = useState<Transaction[]>([]);
@@ -49,77 +57,103 @@ export default function HistoryPage() {
   const totalRevenue = filtered.reduce((s, t) => s + Number(t.totalAmount), 0);
 
   return (
-    <div className="p-5 space-y-5">
+    <div style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 20, height: '100%', overflowY: 'auto' }} className="scrollbar-hide">
+
+      {/* Header */}
       <div>
-        <h1 className="text-xl font-bold text-white">Riwayat Transaksi</h1>
-        <p className="text-slate-400 text-sm mt-0.5">Semua transaksi POS</p>
+        <h1 style={{ fontSize: '1.15rem', fontWeight: 700, color: '#1e293b', margin: 0 }}>Riwayat Transaksi</h1>
+        <p style={{ fontSize: '0.8rem', color: '#94a3b8', marginTop: 3 }}>Semua transaksi POS</p>
       </div>
 
       {/* Filters */}
-      <div className="flex flex-wrap items-center gap-3">
-        <div className="relative">
-          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
-          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Cari no. / kasir..." className="bg-slate-900 border border-slate-700 text-white rounded-xl pl-9 pr-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 placeholder-slate-600" />
+      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 10 }}>
+        <div style={{ position: 'relative' }}>
+          <Search size={14} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: '#94a3b8', pointerEvents: 'none' }} />
+          <input
+            value={search} onChange={e => setSearch(e.target.value)}
+            placeholder="Cari no. / kasir..."
+            style={{ ...INPUT_STYLE, paddingLeft: 32, width: 200 }}
+            onFocus={e => { e.target.style.borderColor = GREEN; e.target.style.background = '#fff'; }}
+            onBlur={e => { e.target.style.borderColor = '#e2e8f0'; e.target.style.background = '#f8fafc'; }}
+          />
         </div>
-        <input type="date" value={from} onChange={e => setFrom(e.target.value)} className="bg-slate-900 border border-slate-700 text-white rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" />
-        <span className="text-slate-500 text-sm">–</span>
-        <input type="date" value={to} onChange={e => setTo(e.target.value)} className="bg-slate-900 border border-slate-700 text-white rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" />
-        <button onClick={load} className="w-9 h-9 flex items-center justify-center rounded-xl border border-slate-700 text-slate-400 hover:text-white hover:border-slate-600">
+        <input type="date" value={from} onChange={e => setFrom(e.target.value)} style={INPUT_STYLE}
+          onFocus={e => { e.target.style.borderColor = GREEN; }}
+          onBlur={e => { e.target.style.borderColor = '#e2e8f0'; }}
+        />
+        <span style={{ color: '#94a3b8', fontSize: '0.85rem' }}>–</span>
+        <input type="date" value={to} onChange={e => setTo(e.target.value)} style={INPUT_STYLE}
+          onFocus={e => { e.target.style.borderColor = GREEN; }}
+          onBlur={e => { e.target.style.borderColor = '#e2e8f0'; }}
+        />
+        <button onClick={load} style={{ width: 36, height: 36, borderRadius: 10, border: '1px solid #e2e8f0', background: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b' }}>
           <RefreshCw size={14} />
         </button>
-        <div className="ml-auto flex items-center gap-3 bg-slate-900 border border-slate-800 rounded-xl px-4 py-2">
-          <BarChart3 size={14} className="text-emerald-500" />
-          <span className="text-sm text-slate-400">{filtered.length} trx</span>
-          <span className="font-bold text-emerald-400">{fmt(totalRevenue)}</span>
+
+        {/* Summary chip */}
+        <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 10, background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 12, padding: '8px 14px' }}>
+          <BarChart3 size={14} style={{ color: GREEN }} />
+          <span style={{ fontSize: '0.8rem', color: '#64748b' }}>{filtered.length} trx</span>
+          <span style={{ fontWeight: 700, color: GREEN }}>{fmt(totalRevenue)}</span>
         </div>
       </div>
 
       {/* List */}
       {loading ? (
-        <div className="space-y-2">
-          {Array.from({ length: 5 }).map((_, i) => <div key={i} className="h-20 bg-slate-900 rounded-2xl animate-pulse border border-slate-800" />)}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {Array.from({ length: 5 }).map((_, i) => (
+            <div key={i} style={{ height: 72, background: '#f1f5f9', borderRadius: 16, animation: 'pulse 1.5s ease-in-out infinite' }} />
+          ))}
         </div>
       ) : filtered.length === 0 ? (
-        <div className="bg-slate-900 rounded-2xl border border-slate-800 p-12 text-center">
-          <Clock size={36} className="text-slate-700 mx-auto mb-3" />
-          <p className="text-slate-500 text-sm">Belum ada transaksi.</p>
+        <div style={{ background: '#fff', border: '1px solid #f1f5f9', borderRadius: 20, padding: 48, textAlign: 'center' }}>
+          <Clock size={36} style={{ color: '#cbd5e1', margin: '0 auto 12px' }} />
+          <p style={{ color: '#94a3b8', fontSize: '0.85rem', margin: 0 }}>Belum ada transaksi.</p>
         </div>
       ) : (
-        <div className="space-y-2">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           {filtered.map(t => (
-            <div key={t.id} className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden">
+            <div key={t.id} style={{ background: '#fff', border: '1px solid #f1f5f9', borderRadius: 16, overflow: 'hidden', boxShadow: '0 1px 4px rgba(0,0,0,0.04)' }}>
               <button
                 onClick={() => setExpanded(p => p === t.id ? null : t.id)}
-                className="w-full px-5 py-4 flex items-center gap-4 hover:bg-slate-800/50 transition-colors text-left"
+                style={{ width: '100%', padding: '14px 20px', display: 'flex', alignItems: 'center', gap: 16, background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left' }}
+                onMouseEnter={e => e.currentTarget.style.background = '#f8fafc'}
+                onMouseLeave={e => e.currentTarget.style.background = 'none'}
               >
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="font-mono text-sm font-semibold text-white">{t.transactionNo}</span>
-                    <span className="text-xs bg-slate-800 text-slate-400 px-2 py-0.5 rounded-full">{t.paymentMethod}</span>
-                    {t.patient && <span className="text-xs bg-blue-900/50 text-blue-400 px-2 py-0.5 rounded-full">{t.patient.name}</span>}
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                    <span style={{ fontFamily: 'monospace', fontSize: '0.875rem', fontWeight: 600, color: '#1e293b' }}>{t.transactionNo}</span>
+                    <span style={{ fontSize: '0.7rem', background: '#f1f5f9', color: '#64748b', padding: '2px 8px', borderRadius: 999 }}>{t.paymentMethod}</span>
+                    {t.patient && <span style={{ fontSize: '0.7rem', background: '#eff6ff', color: '#3b82f6', padding: '2px 8px', borderRadius: 999 }}>{t.patient.name}</span>}
                   </div>
-                  <div className="text-xs text-slate-500 mt-0.5">
+                  <div style={{ fontSize: '0.72rem', color: '#94a3b8', marginTop: 3 }}>
                     {new Date(t.createdAt).toLocaleString('id-ID')} · {t.cashier.name}
                     {t.branch && ` · ${t.branch.name}`}
                   </div>
                 </div>
-                <div className="text-right flex-shrink-0 flex items-center gap-3">
+                <div style={{ textAlign: 'right', flexShrink: 0, display: 'flex', alignItems: 'center', gap: 12 }}>
                   <div>
-                    <div className="font-bold text-emerald-400">{fmt(t.totalAmount)}</div>
-                    {Number(t.changeAmount) > 0 && <div className="text-xs text-slate-500">Kembalian {fmt(t.changeAmount)}</div>}
+                    <div style={{ fontWeight: 700, color: GREEN }}>{fmt(t.totalAmount)}</div>
+                    {Number(t.changeAmount) > 0 && <div style={{ fontSize: '0.7rem', color: '#94a3b8' }}>Kembalian {fmt(t.changeAmount)}</div>}
                   </div>
-                  {expanded === t.id ? <ChevronUp size={16} className="text-slate-500" /> : <ChevronDown size={16} className="text-slate-500" />}
+                  {expanded === t.id
+                    ? <ChevronUp size={16} style={{ color: '#94a3b8' }} />
+                    : <ChevronDown size={16} style={{ color: '#94a3b8' }} />
+                  }
                 </div>
               </button>
+
               {expanded === t.id && (
-                <div className="px-5 pb-4 border-t border-slate-800 pt-3 space-y-1.5">
+                <div style={{ padding: '12px 20px 16px', borderTop: '1px solid #f1f5f9', display: 'flex', flexDirection: 'column', gap: 6 }}>
                   {t.items.map((item, i) => (
-                    <div key={i} className="flex justify-between text-sm">
-                      <span className="text-slate-300">{item.medicine.name} <span className="text-slate-500">×{item.quantity} @ {fmt(item.unitPrice)}</span></span>
-                      <span className="text-white font-medium">{fmt(item.subtotal)}</span>
+                    <div key={i} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem' }}>
+                      <span style={{ color: '#475569' }}>
+                        {item.medicine.name} <span style={{ color: '#94a3b8' }}>×{item.quantity} @ {fmt(item.unitPrice)}</span>
+                      </span>
+                      <span style={{ color: '#1e293b', fontWeight: 600 }}>{fmt(item.subtotal)}</span>
                     </div>
                   ))}
-                  <div className="border-t border-slate-800 pt-1.5 flex justify-between text-sm font-bold text-emerald-400">
+                  <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: 8, display: 'flex', justifyContent: 'space-between', fontSize: '0.875rem', fontWeight: 700, color: GREEN }}>
                     <span>Total</span><span>{fmt(t.totalAmount)}</span>
                   </div>
                 </div>
