@@ -1,5 +1,5 @@
 import Link from "next/link";
-import Image from "next/image";
+import DoctorPhoto from "@/components/DoctorPhoto";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001';
 
@@ -45,19 +45,7 @@ export default async function DoctorsSection() {
           {doctors.map((doc, i) => (
             <div key={doc.id} className="doctor-card animate-in" style={{ animationDelay: `${i * 0.12}s` }}>
               <div className="doctor-card-img">
-                {doc.photoUrl ? (
-                  <Image
-                    src={doc.photoUrl}
-                    alt={doc.name}
-                    fill
-                    className="object-cover object-top"
-                    sizes="(max-width: 768px) 100vw, 300px"
-                  />
-                ) : (
-                  <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '4rem' }}>
-                    👨‍⚕️
-                  </div>
-                )}
+                <DoctorPhoto photoUrl={doc.photoUrl} name={doc.name} />
               </div>
               <div className="doctor-card-body">
                 <div className="doctor-card-name">{doc.name}</div>

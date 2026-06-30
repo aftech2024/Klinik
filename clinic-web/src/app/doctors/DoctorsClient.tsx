@@ -3,7 +3,7 @@
 import { useState } from "react";
 import type { Doctor } from "@/lib/api";
 import Link from "next/link";
-import Image from "next/image";
+import DoctorPhoto from "@/components/DoctorPhoto";
 import { Award, ArrowRight, Calendar, Search } from "lucide-react";
 
 export default function DoctorsClient({ doctors }: { doctors: Doctor[] }) {
@@ -71,18 +71,7 @@ export default function DoctorsClient({ doctors }: { doctors: Doctor[] }) {
             >
               <div>
                 <div className="relative h-64 bg-gradient-to-br from-[#F0FDFA] to-[#CCFBF1]/50 overflow-hidden">
-                  {doc.photoUrl ? (
-                    <Image
-                      src={doc.photoUrl}
-                      alt={doc.name}
-                      fill
-                      className="object-cover object-top group-hover:scale-105 transition-transform duration-500"
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center text-6xl">
-                      👨‍⚕️
-                    </div>
-                  )}
+                  <DoctorPhoto photoUrl={doc.photoUrl} name={doc.name} className="group-hover:scale-105 transition-transform duration-500" />
                   <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-md px-3 py-1 rounded-full text-xs font-bold text-[#0D9488] shadow-sm">
                     {doc.specialty}
                   </div>
