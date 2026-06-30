@@ -1,13 +1,12 @@
 'use client';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
-import { LayoutDashboard, Users, Stethoscope, MapPin, CalendarDays, ListOrdered, Receipt, BarChart3, Settings, LogOut, ChevronRight, ShieldCheck, Building2, Package, ShoppingCart, UserCog } from 'lucide-react';
-import { clearToken, getUser, type AdminUser } from '@/lib/auth';
+import { usePathname } from 'next/navigation';
+import { LayoutDashboard, Users, Stethoscope, MapPin, CalendarDays, ListOrdered, Receipt, BarChart3, ChevronRight, ShieldCheck, Building2, Package, ShoppingCart, UserCog } from 'lucide-react';
+import { getUser, type AdminUser } from '@/lib/auth';
 
 type NavItem = { href: string; label: string; icon: typeof LayoutDashboard };
 
-// Super Admin — global control across all clinics
 const SUPER_NAV: NavItem[] = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/clinic-admins', label: 'Admin Klinik', icon: ShieldCheck },
@@ -20,10 +19,8 @@ const SUPER_NAV: NavItem[] = [
   { href: '/inventory', label: 'Inventori', icon: Package },
   { href: '/pos', label: 'Kasir / POS', icon: ShoppingCart },
   { href: '/reports', label: 'Laporan Global', icon: BarChart3 },
-  { href: '/settings', label: 'Pengaturan', icon: Settings },
 ];
 
-// Clinic Admin — scoped to their own clinic only
 const CLINIC_NAV: NavItem[] = [
   { href: '/dashboard', label: 'Dashboard Klinik', icon: LayoutDashboard },
   { href: '/doctors', label: 'Dokter Klinik', icon: Stethoscope },
@@ -38,16 +35,9 @@ const CLINIC_NAV: NavItem[] = [
 
 export default function Sidebar({ open, onClose }: { open?: boolean; onClose?: () => void }) {
   const path = usePathname();
-  const router = useRouter();
-  const [user, setUserState] = useState<AdminUser | null>(null);
+  const [user, setUser] = useState<AdminUser | null>(null);
 
-  useEffect(() => { setUserState(getUser()); }, []);
-
-  function handleLogout() {
-    clearToken();
-    localStorage.removeItem('admin_refresh');
-    router.push('/login');
-  }
+  useEffect(() => { setUser(getUser()); }, []);
 
   const isSuper = user?.role === 'SUPER_ADMIN';
   const nav = isSuper ? SUPER_NAV : CLINIC_NAV;
@@ -72,12 +62,10 @@ export default function Sidebar({ open, onClose }: { open?: boolean; onClose?: (
             </button>
           )}
         </div>
-        {/* Role badge */}
         <div className={`mt-2 inline-flex items-center gap-1.5 text-[11px] font-semibold px-2 py-1 rounded-md ${isSuper ? 'bg-amber-500/15 text-amber-400' : 'bg-emerald-500/15 text-emerald-400'}`}>
           {isSuper ? <ShieldCheck size={12} /> : <Building2 size={12} />}
           {isSuper ? 'Super Admin' : 'Admin Klinik'}
         </div>
-        {/* Clinic name for scoped admin */}
         {!isSuper && user?.branch && (
           <div className="mt-2 text-xs text-slate-400 leading-tight">
             <div className="text-white font-medium truncate">{user.branch.name}</div>
@@ -104,24 +92,6 @@ export default function Sidebar({ open, onClose }: { open?: boolean; onClose?: (
           );
         })}
       </nav>
-
-      {/* User + Logout */}
-      <div className="p-4 border-t border-slate-800">
-        {user && (
-          <div className="flex items-center gap-2.5 px-2 pb-3 mb-1">
-            <div className="w-8 h-8 rounded-lg bg-emerald-600 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
-              {(user.name || user.email).slice(0, 2).toUpperCase()}
-            </div>
-            <div className="min-w-0">
-              <div className="text-sm text-white font-medium truncate">{user.name || 'Admin'}</div>
-              <div className="text-[11px] text-slate-500 truncate">{user.email}</div>
-            </div>
-          </div>
-        )}
-        <button onClick={handleLogout} className="flex items-center gap-3 px-3 py-2 text-sm text-slate-400 hover:text-red-400 hover:bg-red-400/10 w-full rounded-lg transition-colors">
-          <LogOut size={16} /> Keluar
-        </button>
-      </div>
     </aside>
   );
 }

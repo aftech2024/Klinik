@@ -1,7 +1,8 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Bell, ChevronDown, LogOut, ShieldCheck, Building2 } from 'lucide-react';
+import { Bell, ChevronDown, LogOut, ShieldCheck, Building2, Settings } from 'lucide-react';
+import Link from 'next/link';
 import { clearToken, getUser, type AdminUser } from '@/lib/auth';
 
 export default function Header({ title }: { title: string }) {
@@ -87,7 +88,14 @@ export default function Header({ title }: { title: string }) {
               </div>
 
               {/* Actions */}
-              <div className="p-2">
+              <div className="p-2 space-y-0.5">
+                <Link
+                  href="/settings"
+                  onClick={() => setOpen(false)}
+                  className="w-full flex items-center gap-2.5 px-3 py-2.5 text-sm text-slate-700 hover:bg-slate-50 rounded-xl transition-colors font-medium"
+                >
+                  <Settings size={15} className="text-slate-400" /> Pengaturan
+                </Link>
                 <button
                   onClick={handleLogout}
                   className="w-full flex items-center gap-2.5 px-3 py-2.5 text-sm text-red-600 hover:bg-red-50 rounded-xl transition-colors font-medium"
