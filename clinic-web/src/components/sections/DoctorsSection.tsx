@@ -1,30 +1,11 @@
 import Link from "next/link";
 import DoctorPhoto from "@/components/DoctorPhoto";
-
-const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001';
-
-type Doctor = {
-  id: string; name: string; specialty: string;
-  photoUrl: string | null; bio: string | null;
-  experience: number; isActive: boolean; slug: string;
-};
-
-async function fetchDoctors(): Promise<Doctor[]> {
-  try {
-    const res = await fetch(`${API_BASE}/api/doctors`, {
-      cache: 'no-store', // always fetch at request time, never stale at build
-    });
-    if (!res.ok) return [];
-    const data = await res.json();
-    const list: Doctor[] = Array.isArray(data) ? data : (data.data ?? []);
-    return list.slice(0, 4);
-  } catch {
-    return [];
-  }
-}
+import { api } from "@/lib/api";
 
 export default async function DoctorsSection() {
-  const doctors = await fetchDoctors();
+  let doctors: Awaited<ReturnType<typeof api.doctors>> = [];
+  try { doctors = await api.doctors(); } catch { doctors = []; }
+  const shown = doctors.slice(0, 4);
 
   return (
     <section id="doctors" className="section-doctors">
@@ -38,7 +19,7 @@ export default async function DoctorsSection() {
         </div>
 
         <div className="doctors-grid">
-          {doctors.map((doc, i) => (
+          {shown.map((doc, i) => (
             <div key={doc.id} className="doctor-card animate-in" style={{ animationDelay: `${i * 0.12}s` }}>
               <div className="doctor-card-img">
                 <DoctorPhoto photoUrl={doc.photoUrl} name={doc.name} />
@@ -52,12 +33,6 @@ export default async function DoctorsSection() {
                     <span>{doc.experience} tahun pengalaman</span>
                   </div>
                 )}
-                <div className="doctor-card-info">
-                  <span style={{ width: 8, height: 8, borderRadius: '50%', background: doc.isActive ? '#12B76A' : '#F04438', display: 'inline-block' }} />
-                  <span style={{ color: doc.isActive ? '#12B76A' : '#F04438' }}>
-                    {doc.isActive ? 'Tersedia Hari Ini' : 'Tidak Tersedia'}
-                  </span>
-                </div>
                 <div className="doctor-card-actions">
                   <Link href={`/booking?doctor=${doc.slug}`} className="btn-book-sm">Book Now</Link>
                   <Link href={`/doctors/${doc.slug}`} className="btn-profile-sm">Profile</Link>
