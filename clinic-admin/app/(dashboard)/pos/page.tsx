@@ -9,6 +9,7 @@ import {
   RefreshCw, ChevronUp, Pencil, ArrowUpDown, AlertTriangle, Save,
 } from 'lucide-react';
 
+type Branch = { id: string; name: string; city?: string };
 type Medicine = {
   id: string; code: string; name: string; genericName?: string;
   category?: string; unit: string; price: number; isActive?: boolean;
@@ -184,30 +185,36 @@ function MedicineModal({ medicine, onClose, onDone }: {
 }
 
 // ── Stock Adjust Modal ────────────────────────────────────────────────────────
-function StockModal({ medicines, branchId, stock, onClose, onDone }: {
+function StockModal({ medicines, branches, branchId, isSuper, stock, onClose, onDone }: {
   medicines: Medicine[];
+  branches: Branch[];
   branchId: string;
-  stock: Stock | null; // null = new IN
+  isSuper: boolean;
+  stock: Stock | null; // null = new
   onClose: () => void;
   onDone: () => void;
 }) {
   const [medicineId, setMedicineId] = useState(stock?.medicine.id ?? '');
+  const [selectedBranchId, setSelectedBranchId] = useState(stock?.branch.id ?? branchId);
   const [type, setType] = useState<'IN' | 'OUT'>('IN');
   const [qty, setQty] = useState('');
   const [reason, setReason] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
+  const effectiveBranchId = isSuper ? selectedBranchId : branchId;
+
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setError('');
     const q = parseInt(qty);
     if (!medicineId || !q || q <= 0) { setError('Pilih obat dan masukkan jumlah > 0.'); return; }
+    if (!effectiveBranchId) { setError('Pilih cabang terlebih dahulu.'); return; }
     setSaving(true);
     try {
       await api.post('/api/pharmacy/stock/adjust', {
         medicineId,
-        branchId,
+        branchId: effectiveBranchId,
         quantity: type === 'OUT' ? -q : q,
         type,
         reason: reason.trim() || undefined,
@@ -226,7 +233,7 @@ function StockModal({ medicines, branchId, stock, onClose, onDone }: {
         <div className="flex items-center justify-between p-5 border-b border-slate-100">
           <div>
             <h3 className="font-bold text-slate-900">{stock ? 'Sesuaikan Stok' : 'Tambah Stok'}</h3>
-            {stock && <p className="text-xs text-slate-400 mt-0.5">{stock.medicine.name}</p>}
+            {stock && <p className="text-xs text-slate-400 mt-0.5">{stock.medicine.name} · {stock.branch.name}</p>}
           </div>
           <button onClick={onClose} className="w-8 h-8 rounded-xl hover:bg-slate-100 flex items-center justify-center text-slate-500">
             <X size={16} />
@@ -235,6 +242,18 @@ function StockModal({ medicines, branchId, stock, onClose, onDone }: {
 
         <form onSubmit={submit} className="p-5 space-y-4">
           {error && <div className="px-3 py-2 bg-red-50 border border-red-200 text-red-600 text-sm rounded-xl">{error}</div>}
+
+          {/* Branch selector — Super Admin only */}
+          {isSuper && (
+            <div>
+              <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Cabang *</label>
+              <select value={selectedBranchId} onChange={e => setSelectedBranchId(e.target.value)} required
+                className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                <option value="">-- Pilih cabang --</option>
+                {branches.map(b => <option key={b.id} value={b.id}>{b.name}{b.city ? ` — ${b.city}` : ''}</option>)}
+              </select>
+            </div>
+          )}
 
           {!stock && (
             <div>
@@ -459,6 +478,7 @@ function CartPanel({
 export default function PosPage() {
   const [medicines, setMedicines] = useState<Medicine[]>([]);
   const [stocks, setStocks] = useState<Stock[]>([]);
+  const [branches, setBranches] = useState<Branch[]>([]);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [search, setSearch] = useState('');
   const [medSearch, setMedSearch] = useState('');
@@ -471,7 +491,6 @@ export default function PosPage() {
   const [summary, setSummary] = useState<{ totalTransactions: number; totalRevenue: number } | null>(null);
   const [tab, setTab] = useState<'kasir' | 'riwayat' | 'obat' | 'stok'>('kasir');
   const [cartOpen, setCartOpen] = useState(false);
-  const [editMedicine, setEditMedicine] = useState<Medicine | null | 'new'>('new' as any);
   const [showMedModal, setShowMedModal] = useState(false);
   const [selectedMed, setSelectedMed] = useState<Medicine | null>(null);
   const [showStockModal, setShowStockModal] = useState(false);
@@ -519,6 +538,10 @@ export default function PosPage() {
   useEffect(() => { loadMedicines(); loadRecent(); }, [loadMedicines, loadRecent]);
   useEffect(() => { if (tab === 'obat') loadAllMedicines(); }, [tab, loadAllMedicines]);
   useEffect(() => { if (tab === 'stok') loadStocks(); }, [tab, loadStocks]);
+  useEffect(() => {
+    if (!isSuper) return;
+    api.get('/api/branches').then(r => setBranches(r.data ?? [])).catch(() => {});
+  }, [isSuper]);
 
   const filtered = medicines.filter(m => {
     if (!search) return true;
@@ -939,7 +962,9 @@ export default function PosPage() {
       {showStockModal && (
         <StockModal
           medicines={medicines}
+          branches={branches}
           branchId={branchId}
+          isSuper={isSuper}
           stock={selectedStock}
           onClose={() => setShowStockModal(false)}
           onDone={() => { loadStocks(); loadMedicines(); }}
