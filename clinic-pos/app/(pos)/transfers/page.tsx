@@ -3,6 +3,7 @@ import { useEffect, useState, useCallback } from 'react';
 import api from '@/lib/api';
 import { getUser, getActiveBranchId } from '@/lib/auth';
 import { ArrowRight, CheckCircle, XCircle, Clock, Plus, X, RefreshCw, Package } from 'lucide-react';
+import POSUserMenu from '@/components/POSUserMenu';
 
 type Medicine = { id: string; name: string; unit: string };
 type Branch = { id: string; name: string; city: string };
@@ -193,6 +194,8 @@ export default function TransfersPage() {
           <button onClick={() => setRequesting(true)} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.85rem', fontWeight: 700, padding: '9px 16px', borderRadius: 12, background: '#3b82f6', color: '#fff', border: 'none', cursor: 'pointer', boxShadow: '0 4px 12px rgba(59,130,246,0.25)' }}>
             <Plus size={14} /> Request
           </button>
+          <div style={{ width: 1, height: 28, background: '#e2e8f0', margin: '0 4px' }} />
+          <POSUserMenu />
         </div>
       </div>
 

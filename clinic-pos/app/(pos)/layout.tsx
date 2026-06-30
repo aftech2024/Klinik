@@ -2,7 +2,6 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import POSSidebar from '@/components/POSSidebar';
-import POSUserMenu from '@/components/POSUserMenu';
 import { isLoggedIn, getActiveBranchId, getUser } from '@/lib/auth';
 
 export default function PosLayout({ children }: { children: React.ReactNode }) {
@@ -26,17 +25,8 @@ export default function PosLayout({ children }: { children: React.ReactNode }) {
       <POSSidebar />
 
       <main className="flex-1 py-4 pr-4 overflow-hidden" style={{ position: 'relative', zIndex: 1 }}>
-        <div style={{ height: '100%', background: '#fff', borderRadius: 24, boxShadow: '0 2px 16px rgba(0,0,0,0.06)', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-
-          {/* Shared top bar — user dropdown always visible */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', padding: '12px 20px', borderBottom: '1px solid #f1f5f9', flexShrink: 0 }}>
-            <POSUserMenu />
-          </div>
-
-          {/* Page content */}
-          <div style={{ flex: 1, overflow: 'hidden' }}>
-            {children}
-          </div>
+        <div style={{ height: '100%', background: '#fff', borderRadius: 24, boxShadow: '0 2px 16px rgba(0,0,0,0.06)', overflow: 'hidden' }}>
+          {children}
         </div>
       </main>
     </div>

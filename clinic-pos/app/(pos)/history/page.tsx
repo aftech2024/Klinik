@@ -3,6 +3,7 @@ import { useEffect, useState, useCallback } from 'react';
 import api from '@/lib/api';
 import { getActiveBranchId, getUser } from '@/lib/auth';
 import { Clock, Search, ChevronDown, ChevronUp, RefreshCw, BarChart3 } from 'lucide-react';
+import POSUserMenu from '@/components/POSUserMenu';
 
 type Transaction = {
   id: string; transactionNo: string; totalAmount: number; paidAmount: number;
@@ -60,9 +61,12 @@ export default function HistoryPage() {
     <div style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 20, height: '100%', overflowY: 'auto' }} className="scrollbar-hide">
 
       {/* Header */}
-      <div>
-        <h1 style={{ fontSize: '1.15rem', fontWeight: 700, color: '#1e293b', margin: 0 }}>Riwayat Transaksi</h1>
-        <p style={{ fontSize: '0.8rem', color: '#94a3b8', marginTop: 3 }}>Semua transaksi POS</p>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div>
+          <h1 style={{ fontSize: '1.15rem', fontWeight: 700, color: '#1e293b', margin: 0 }}>Riwayat Transaksi</h1>
+          <p style={{ fontSize: '0.8rem', color: '#94a3b8', marginTop: 3 }}>Semua transaksi POS</p>
+        </div>
+        <POSUserMenu />
       </div>
 
       {/* Filters */}

@@ -8,6 +8,7 @@ import {
   Package, Bell, Calendar,
   AlertCircle, Printer, ChevronRight,
 } from 'lucide-react';
+import POSUserMenu from '@/components/POSUserMenu';
 
 type Medicine = {
   id: string; code: string; name: string; unit: string; price: number; category?: string;
@@ -256,6 +257,9 @@ export default function TerminalPage() {
             </button>
             <span style={{ position: 'absolute', top: 0, right: 0, width: 16, height: 16, borderRadius: '50%', background: '#ef4444', color: '#fff', fontSize: 9, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>2</span>
           </div>
+
+          {/* User dropdown */}
+          <POSUserMenu />
         </div>
       </div>
 
