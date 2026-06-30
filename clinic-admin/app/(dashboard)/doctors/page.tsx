@@ -5,7 +5,6 @@ import api from '@/lib/api';
 import { getUser, type AdminUser } from '@/lib/auth';
 import { Stethoscope, MapPin, Award, X, Plus, Trash2, Building2, UserPlus, Camera } from 'lucide-react';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001';
 
 type BranchRef = { id: string; name: string; city: string };
 type DoctorBranch = { branch: BranchRef };
@@ -297,7 +296,7 @@ export default function DoctorsPage() {
       const { data: uploaded } = await api.post('/api/upload', form, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
-      const photoUrl = `${API_BASE}${uploaded.url}`;
+      const photoUrl = uploaded.url; // full Supabase Storage public URL
       await api.patch(`/api/doctors/${doctorId}`, { photoUrl });
       setDoctors(prev => prev.map(d => d.id === doctorId ? { ...d, photoUrl } : d));
     } catch (err: any) {

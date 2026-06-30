@@ -1,11 +1,22 @@
 import {
-  Controller, Post, UploadedFile, UseGuards, UseInterceptors, BadRequestException,
+  Controller, Post, UploadedFile, UseGuards, UseInterceptors,
+  BadRequestException, InternalServerErrorException,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { diskStorage } from 'multer';
+import { memoryStorage } from 'multer';
 import { extname } from 'path';
 import { v4 as uuid } from 'uuid';
+import { createClient } from '@supabase/supabase-js';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+
+const BUCKET = 'clinic-uploads';
+
+function getSupabase() {
+  const url = process.env.SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !key) throw new InternalServerErrorException('Supabase storage not configured');
+  return createClient(url, key);
+}
 
 @Controller('api/upload')
 @UseGuards(JwtAuthGuard)
@@ -13,10 +24,7 @@ export class UploadController {
   @Post()
   @UseInterceptors(
     FileInterceptor('file', {
-      storage: diskStorage({
-        destination: './uploads',
-        filename: (_req, file, cb) => cb(null, `${uuid()}${extname(file.originalname)}`),
-      }),
+      storage: memoryStorage(),
       limits: { fileSize: 5 * 1024 * 1024 },
       fileFilter: (_req, file, cb) => {
         if (!file.mimetype.match(/^image\//)) {
@@ -26,8 +34,25 @@ export class UploadController {
       },
     }),
   )
-  uploadFile(@UploadedFile() file: Express.Multer.File) {
+  async uploadFile(@UploadedFile() file: Express.Multer.File) {
     if (!file) throw new BadRequestException('File tidak ditemukan');
-    return { url: `/uploads/${file.filename}`, filename: file.filename, size: file.size };
+
+    const supabase = getSupabase();
+    const filename = `${uuid()}${extname(file.originalname)}`;
+    const path = `doctors/${filename}`;
+
+    const { error } = await supabase.storage
+      .from(BUCKET)
+      .upload(path, file.buffer, {
+        contentType: file.mimetype,
+        upsert: false,
+      });
+
+    if (error) throw new InternalServerErrorException(`Upload gagal: ${error.message}`);
+
+    const { data: publicData } = supabase.storage.from(BUCKET).getPublicUrl(path);
+    const url = publicData.publicUrl;
+
+    return { url, filename, size: file.size };
   }
 }
