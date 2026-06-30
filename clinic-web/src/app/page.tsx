@@ -7,6 +7,9 @@ import BranchesSection from "@/components/sections/BranchesSection";
 import TestimonialsSection from "@/components/sections/TestimonialsSection";
 import CTABannerSection from "@/components/sections/CTABannerSection";
 
+// Render per-request so doctor photos always follow admin uploads (no build cache)
+export const dynamic = "force-dynamic";
+
 export default function HomePage() {
   return (
     <>
