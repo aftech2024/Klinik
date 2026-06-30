@@ -1,5 +1,3 @@
-'use client';
-import { useEffect, useState } from "react";
 import Link from "next/link";
 import DoctorPhoto from "@/components/DoctorPhoto";
 
@@ -11,27 +9,22 @@ type Doctor = {
   experience: number; isActive: boolean; slug: string;
 };
 
-// Fallback shown while loading or on fetch error
-const FALLBACK: Doctor[] = [
-  { id: '1', name: 'dr. Sarah Wijaya, Sp.PD', specialty: 'Penyakit Dalam', photoUrl: null, bio: null, experience: 12, isActive: true, slug: 'dr-sarah-wijaya' },
-  { id: '2', name: 'dr. Budi Santoso, Sp.A', specialty: 'Anak (Pediatri)', photoUrl: null, bio: null, experience: 8, isActive: true, slug: 'dr-budi-santoso' },
-  { id: '3', name: 'dr. Rina Hartati, Sp.OG', specialty: 'Kebidanan & Kandungan', photoUrl: null, bio: null, experience: 15, isActive: false, slug: 'dr-rina-hartati' },
-  { id: '4', name: 'drg. Putri Lestari', specialty: 'Gigi & Mulut', photoUrl: null, bio: null, experience: 6, isActive: true, slug: 'drg-putri-lestari' },
-];
+async function fetchDoctors(): Promise<Doctor[]> {
+  try {
+    const res = await fetch(`${API_BASE}/api/doctors`, {
+      cache: 'no-store', // always fetch at request time, never stale at build
+    });
+    if (!res.ok) return [];
+    const data = await res.json();
+    const list: Doctor[] = Array.isArray(data) ? data : (data.data ?? []);
+    return list.slice(0, 4);
+  } catch {
+    return [];
+  }
+}
 
-export default function DoctorsSection() {
-  const [doctors, setDoctors] = useState<Doctor[]>(FALLBACK);
-
-  useEffect(() => {
-    fetch(`${API_BASE}/api/doctors?limit=4`)
-      .then(r => r.ok ? r.json() : null)
-      .then(data => {
-        if (!data) return;
-        const list: Doctor[] = Array.isArray(data) ? data : (data.data ?? []);
-        if (list.length > 0) setDoctors(list.slice(0, 4));
-      })
-      .catch(() => {});
-  }, []);
+export default async function DoctorsSection() {
+  const doctors = await fetchDoctors();
 
   return (
     <section id="doctors" className="section-doctors">
