@@ -4,36 +4,28 @@ import { useRouter } from 'next/navigation';
 import { Space_Grotesk } from 'next/font/google';
 import api from '@/lib/api';
 import { setToken, setRefresh, setUser } from '@/lib/auth';
-import { Eye, EyeOff } from 'lucide-react';
+import { Eye, EyeOff, ShoppingCart, Package, TrendingUp, Zap, AlertCircle, Mail, Lock } from 'lucide-react';
 
-const sg = Space_Grotesk({ subsets: ['latin'], weight: ['300', '400', '500', '700'] });
+const sg = Space_Grotesk({ subsets: ['latin'], weight: ['300', '400', '500', '600', '700'] });
 
-// Ambient feed — simulated real transactions (Indonesian clinic context)
-const FEED_ROWS = [
-  { time: '07:02', item: 'Paracetamol 500mg ×4', amount: 'Rp 12.000', method: 'CASH' },
-  { time: '07:11', item: 'Amoxicillin 500mg ×6', amount: 'Rp 36.000', method: 'QRIS' },
-  { time: '07:19', item: 'Antasida DOEN ×2', amount: 'Rp 9.000', method: 'CASH' },
-  { time: '07:33', item: 'Vitamin C 500mg ×10', amount: 'Rp 18.000', method: 'TRANSFER' },
-  { time: '07:44', item: 'Cetirizine 10mg ×5', amount: 'Rp 22.500', method: 'QRIS' },
-  { time: '07:58', item: 'Omeprazole 20mg ×7', amount: 'Rp 31.500', method: 'CARD' },
-  { time: '08:06', item: 'Ibuprofen 400mg ×3', amount: 'Rp 13.500', method: 'CASH' },
-  { time: '08:17', item: 'OBH Combi ×1', amount: 'Rp 14.000', method: 'QRIS' },
-  { time: '08:29', item: 'Metformin 500mg ×14', amount: 'Rp 28.000', method: 'CASH' },
-  { time: '08:41', item: 'Betamethasone ×2', amount: 'Rp 16.000', method: 'TRANSFER' },
-  { time: '08:55', item: 'Paracetamol 500mg ×8', amount: 'Rp 24.000', method: 'CASH' },
-  { time: '09:03', item: 'Cetirizine 10mg ×3', amount: 'Rp 13.500', method: 'QRIS' },
-  { time: '09:12', item: 'Omeprazole 20mg ×5', amount: 'Rp 22.500', method: 'CASH' },
-  { time: '09:24', item: 'Amoxicillin 500mg ×9', amount: 'Rp 54.000', method: 'QRIS' },
-  { time: '09:37', item: 'Vitamin C 500mg ×6', amount: 'Rp 10.800', method: 'CARD' },
-  { time: '09:49', item: 'Ibuprofen 400mg ×5', amount: 'Rp 22.500', method: 'CASH' },
+const TICKER = [
+  { item: 'Paracetamol 500mg ×4', amount: 'Rp 12.000', method: 'CASH',     color: '#00C9A7' },
+  { item: 'Amoxicillin 500mg ×6', amount: 'Rp 36.000', method: 'QRIS',     color: '#C8A56A' },
+  { item: 'Antasida DOEN ×2',     amount: 'Rp 9.000',  method: 'CASH',     color: '#00C9A7' },
+  { item: 'Vitamin C 500mg ×10',  amount: 'Rp 18.000', method: 'TRANSFER', color: '#7C9FD4' },
+  { item: 'Cetirizine 10mg ×5',   amount: 'Rp 22.500', method: 'QRIS',     color: '#C8A56A' },
+  { item: 'Omeprazole 20mg ×7',   amount: 'Rp 31.500', method: 'CARD',     color: '#A78BFA' },
+  { item: 'Ibuprofen 400mg ×3',   amount: 'Rp 13.500', method: 'CASH',     color: '#00C9A7' },
+  { item: 'OBH Combi ×1',         amount: 'Rp 14.000', method: 'QRIS',     color: '#C8A56A' },
+  { item: 'Metformin 500mg ×14',  amount: 'Rp 28.000', method: 'CASH',     color: '#00C9A7' },
+  { item: 'Betamethasone ×2',     amount: 'Rp 16.000', method: 'TRANSFER', color: '#7C9FD4' },
 ];
 
-const METHOD_COLOR: Record<string, string> = {
-  CASH: 'text-[#00C9A7]',
-  QRIS: 'text-[#C8A56A]',
-  TRANSFER: 'text-[#7C9FD4]',
-  CARD: 'text-[#A78BFA]',
-};
+const STATS = [
+  { icon: ShoppingCart, label: 'Transaksi Hari Ini', value: '147', sub: '+12 dari kemarin',  accent: '#00C9A7' },
+  { icon: TrendingUp,   label: 'Revenue',            value: 'Rp 4,2jt', sub: '↑ 8% minggu ini', accent: '#C8A56A' },
+  { icon: Package,      label: 'Stok Obat',          value: '312 SKU', sub: '8 hampir habis',  accent: '#7C9FD4' },
+];
 
 export default function PosLoginPage() {
   const router = useRouter();
@@ -65,53 +57,145 @@ export default function PosLoginPage() {
     }
   }
 
-  // Duplicate feed for seamless loop
-  const feedDouble = [...FEED_ROWS, ...FEED_ROWS];
+  const doubled = [...TICKER, ...TICKER];
 
   return (
-    <div className={`${sg.className} min-h-screen flex bg-[#06091A]`}>
+    <div className={`${sg.className} min-h-screen flex overflow-hidden`} style={{ background: '#050A18' }}>
 
-      {/* ── LEFT BRAND PANEL ── */}
-      <div
-        className="hidden lg:flex flex-col relative overflow-hidden"
-        style={{ flex: '0 0 56%' }}
-      >
-        {/* Animated gradient base */}
+      {/* ── BACKGROUND ORBS ── */}
+      <div className="fixed inset-0 pointer-events-none overflow-hidden">
+        {/* Orb 1 — teal */}
         <div
-          className="absolute inset-0 animate-gradient-shift"
+          className="animate-orb-1 absolute rounded-full"
           style={{
-            background: 'linear-gradient(135deg, #06091A 0%, #081628 35%, #0A1E3A 55%, #06091A 100%)',
+            width: 600, height: 600,
+            top: '-15%', left: '-10%',
+            background: 'radial-gradient(circle, rgba(0,201,167,0.12) 0%, transparent 70%)',
+            filter: 'blur(40px)',
           }}
         />
-
-        {/* Noise texture overlay */}
+        {/* Orb 2 — blue */}
         <div
-          className="absolute inset-0 opacity-[0.03]"
+          className="animate-orb-2 absolute rounded-full"
           style={{
-            backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")`,
-            backgroundSize: '200px 200px',
+            width: 500, height: 500,
+            bottom: '-10%', left: '30%',
+            background: 'radial-gradient(circle, rgba(59,130,246,0.10) 0%, transparent 70%)',
+            filter: 'blur(50px)',
           }}
         />
+        {/* Orb 3 — purple */}
+        <div
+          className="animate-orb-3 absolute rounded-full"
+          style={{
+            width: 400, height: 400,
+            top: '20%', right: '-5%',
+            background: 'radial-gradient(circle, rgba(167,139,250,0.08) 0%, transparent 70%)',
+            filter: 'blur(40px)',
+          }}
+        />
+        {/* Subtle grid */}
+        <div
+          className="absolute inset-0 opacity-[0.025]"
+          style={{
+            backgroundImage: `linear-gradient(rgba(255,255,255,0.4) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.4) 1px, transparent 1px)`,
+            backgroundSize: '48px 48px',
+          }}
+        />
+      </div>
 
-        {/* Scrolling transaction feed (behind everything) */}
-        <div className="absolute inset-0 overflow-hidden" style={{ maskImage: 'linear-gradient(to bottom, transparent 0%, black 15%, black 85%, transparent 100%)' }}>
-          <div className="animate-feed" style={{ willChange: 'transform' }}>
-            {feedDouble.map((row, i) => (
+      {/* ── LEFT PANEL ── */}
+      <div className="hidden lg:flex flex-col relative z-10" style={{ flex: '0 0 54%' }}>
+        {/* Top logo */}
+        <div className="px-10 pt-10 flex items-center gap-3">
+          <div
+            className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+            style={{ background: 'linear-gradient(135deg,#00C9A7,#00A88C)', boxShadow: '0 0 20px rgba(0,201,167,0.3)' }}
+          >
+            <Zap size={17} fill="#050A18" color="#050A18" />
+          </div>
+          <span style={{ fontWeight: 700, fontSize: '1.05rem', color: '#E4ECF8', letterSpacing: '-0.01em' }}>
+            aftech <span style={{ color: '#00C9A7' }}>Klinik</span>
+          </span>
+        </div>
+
+        {/* Main copy */}
+        <div className="px-10 mt-16 animate-slide-right">
+          <div
+            className="text-xs font-semibold uppercase tracking-[0.3em] mb-4"
+            style={{ color: '#C8A56A' }}
+          >
+            ● Sistem POS Aktif
+          </div>
+          <h1
+            className="font-bold leading-[1.12] mb-6"
+            style={{ fontSize: 'clamp(2.6rem, 4.5vw, 3.8rem)', color: '#E4ECF8', letterSpacing: '-0.03em' }}
+          >
+            Kasir lebih cepat,<br />
+            <span
+              style={{
+                backgroundImage: 'linear-gradient(90deg, #00C9A7 0%, #7C9FD4 100%)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+              }}
+            >
+              transaksi lebih mudah.
+            </span>
+          </h1>
+          <p style={{ color: 'rgba(228,236,248,0.45)', fontSize: '0.95rem', lineHeight: 1.7, maxWidth: 380 }}>
+            Kelola penjualan obat, pantau stok, dan catat setiap transaksi secara real-time di seluruh cabang aftech Klinik.
+          </p>
+        </div>
+
+        {/* Stats cards */}
+        <div className="px-10 mt-10 grid grid-cols-3 gap-3">
+          {STATS.map((s, i) => (
+            <div
+              key={s.label}
+              className="animate-stat rounded-2xl p-4 relative overflow-hidden"
+              style={{
+                background: 'rgba(255,255,255,0.04)',
+                border: '1px solid rgba(255,255,255,0.07)',
+                backdropFilter: 'blur(12px)',
+                animationDelay: `${i * 0.1}s`,
+              }}
+            >
+              <div
+                className="w-8 h-8 rounded-xl flex items-center justify-center mb-3"
+                style={{ background: `rgba(${s.accent === '#00C9A7' ? '0,201,167' : s.accent === '#C8A56A' ? '200,165,106' : '124,159,212'},0.15)` }}
+              >
+                <s.icon size={15} style={{ color: s.accent }} />
+              </div>
+              <div className="font-bold text-lg leading-none mb-1" style={{ color: '#E4ECF8' }}>{s.value}</div>
+              <div className="text-[10px] font-medium" style={{ color: 'rgba(228,236,248,0.4)' }}>{s.label}</div>
+              <div className="text-[9px] mt-1" style={{ color: s.accent, opacity: 0.7 }}>{s.sub}</div>
+            </div>
+          ))}
+        </div>
+
+        {/* Live transaction ticker */}
+        <div className="mt-8 flex-1 min-h-0 relative overflow-hidden" style={{ maskImage: 'linear-gradient(to bottom, transparent 0%, black 12%, black 88%, transparent 100%)' }}>
+          <div className="animate-ticker">
+            {doubled.map((row, i) => (
               <div
                 key={i}
-                className="flex items-center gap-4 px-10 py-2.5 border-b"
-                style={{ borderColor: 'rgba(255,255,255,0.03)' }}
+                className="flex items-center gap-4 mx-10 px-4 py-2.5 rounded-xl mb-1.5"
+                style={{ background: i % 2 === 0 ? 'rgba(255,255,255,0.025)' : 'transparent' }}
               >
-                <span className="font-mono text-xs tabular-nums" style={{ color: 'rgba(255,255,255,0.2)', minWidth: '2.75rem' }}>
-                  {row.time}
-                </span>
-                <span className="flex-1 text-xs truncate" style={{ color: 'rgba(255,255,255,0.18)' }}>
+                <span
+                  className="w-2 h-2 rounded-full flex-shrink-0"
+                  style={{ background: row.color, opacity: 0.7 }}
+                />
+                <span className="flex-1 text-xs truncate" style={{ color: 'rgba(228,236,248,0.5)' }}>
                   {row.item}
                 </span>
-                <span className="font-mono text-xs tabular-nums" style={{ color: 'rgba(255,255,255,0.25)' }}>
+                <span className="font-mono text-xs font-semibold tabular-nums" style={{ color: 'rgba(228,236,248,0.6)' }}>
                   {row.amount}
                 </span>
-                <span className={`text-[10px] font-semibold uppercase tracking-wider w-14 text-right ${METHOD_COLOR[row.method]}`} style={{ opacity: 0.4 }}>
+                <span
+                  className="text-[10px] font-bold uppercase tracking-wider w-12 text-right"
+                  style={{ color: row.color }}
+                >
                   {row.method}
                 </span>
               </div>
@@ -119,122 +203,75 @@ export default function PosLoginPage() {
           </div>
         </div>
 
-        {/* Giant POS outline mark — the signature */}
-        <div
-          className="absolute inset-0 flex items-center justify-center select-none pointer-events-none"
-          style={{ zIndex: 2 }}
-        >
-          <div
-            style={{
-              fontSize: 'clamp(9rem, 22vw, 19rem)',
-              fontWeight: 700,
-              letterSpacing: '0.22em',
-              color: 'transparent',
-              WebkitTextStroke: '1.5px rgba(0,201,167,0.22)',
-              textShadow: '0 0 120px rgba(0,201,167,0.06)',
-              userSelect: 'none',
-              lineHeight: 1,
-              paddingLeft: '0.22em',
-            }}
-          >
-            POS
-          </div>
-        </div>
-
-        {/* Top-left logotype */}
-        <div className="relative z-10 p-8 flex items-center gap-2.5 flex-shrink-0">
-          <div
-            className="w-7 h-7 rounded-lg flex items-center justify-center"
-            style={{ background: 'rgba(0,201,167,0.15)', border: '1px solid rgba(0,201,167,0.25)' }}
-          >
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-              <path d="M1 3h12M1 7h12M1 11h12M4 1v12M10 1v12" stroke="#00C9A7" strokeWidth="1.5" strokeLinecap="round" />
-            </svg>
-          </div>
-          <span style={{ color: '#E4ECF8', fontWeight: 600, fontSize: '0.9rem', letterSpacing: '0.01em' }}>
-            aftech <span style={{ color: '#00C9A7' }}>Klinik</span>
-          </span>
-        </div>
-
-        {/* Bottom meta */}
-        <div className="relative z-10 mt-auto p-8 pb-10 flex-shrink-0">
-          <div
-            className="text-xs font-semibold uppercase tracking-[0.25em] mb-2"
-            style={{ color: '#C8A56A' }}
-          >
-            Sistem Kasir
-          </div>
-          <div
-            className="text-3xl font-bold leading-tight"
-            style={{ color: '#E4ECF8', letterSpacing: '-0.02em' }}
-          >
-            Selamat memulai<br />
-            <span style={{ color: 'rgba(228,236,248,0.45)' }}>shift hari ini.</span>
-          </div>
-          <div
-            className="mt-6 flex items-center gap-1.5 text-xs"
-            style={{ color: 'rgba(255,255,255,0.25)' }}
-          >
-            <span
-              className="w-1.5 h-1.5 rounded-full"
-              style={{ background: '#00C9A7', animation: 'pulse-ring 2.4s ease-in-out infinite' }}
-            />
-            Sistem aktif · {new Date().toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
-          </div>
+        {/* Bottom date */}
+        <div className="px-10 py-8 flex items-center gap-2 text-xs" style={{ color: 'rgba(228,236,248,0.2)' }}>
+          <span className="w-1.5 h-1.5 rounded-full animate-blink flex-shrink-0" style={{ background: '#00C9A7' }} />
+          {new Date().toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
         </div>
       </div>
 
-      {/* ── RIGHT FORM PANEL ── */}
+      {/* ── RIGHT / FORM PANEL ── */}
       <div
-        className="flex-1 flex flex-col items-center justify-center p-6 sm:p-10"
-        style={{ background: '#0C1428', borderLeft: '1px solid rgba(255,255,255,0.05)' }}
+        className="flex-1 relative z-10 flex flex-col items-center justify-center p-6 sm:p-10"
+        style={{ borderLeft: '1px solid rgba(255,255,255,0.05)' }}
       >
         {/* Mobile logo */}
         <div className="lg:hidden mb-8 text-center">
-          <div
-            className="inline-flex items-center gap-2 mb-1"
-          >
-            <span style={{ fontWeight: 700, fontSize: '1.25rem', color: '#E4ECF8' }}>
+          <div className="inline-flex items-center gap-2.5 mb-2">
+            <div
+              className="w-8 h-8 rounded-xl flex items-center justify-center"
+              style={{ background: 'linear-gradient(135deg,#00C9A7,#00A88C)', boxShadow: '0 0 16px rgba(0,201,167,0.3)' }}
+            >
+              <Zap size={14} fill="#050A18" color="#050A18" />
+            </div>
+            <span style={{ fontWeight: 700, fontSize: '1.1rem', color: '#E4ECF8' }}>
               aftech <span style={{ color: '#00C9A7' }}>POS</span>
             </span>
           </div>
-          <p style={{ color: 'rgba(228,236,248,0.4)', fontSize: '0.8rem' }}>Sistem Kasir Klinik</p>
+          <p style={{ color: 'rgba(228,236,248,0.35)', fontSize: '0.8rem' }}>Sistem Kasir Klinik</p>
         </div>
 
-        <div className="w-full max-w-[360px] animate-fade-up">
-          {/* Header */}
-          <div className="mb-8">
+        {/* Glass form card */}
+        <div
+          className="w-full max-w-[380px] animate-fade-up rounded-3xl p-8"
+          style={{
+            background: 'rgba(255,255,255,0.04)',
+            border: '1px solid rgba(255,255,255,0.09)',
+            backdropFilter: 'blur(24px)',
+            boxShadow: '0 32px 80px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.07)',
+          }}
+        >
+          {/* Card header */}
+          <div className="mb-7">
             <div
-              className="text-xs font-semibold uppercase tracking-[0.2em] mb-3"
-              style={{ color: '#C8A56A' }}
+              className="inline-flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.25em] mb-4 px-3 py-1.5 rounded-full"
+              style={{ background: 'rgba(0,201,167,0.1)', border: '1px solid rgba(0,201,167,0.2)', color: '#00C9A7' }}
             >
+              <span className="w-1.5 h-1.5 rounded-full bg-current animate-blink" />
               Masuk ke POS
             </div>
-            <h1
-              className="text-2xl font-bold"
-              style={{ color: '#E4ECF8', letterSpacing: '-0.02em', lineHeight: 1.25 }}
+            <h2
+              className="font-bold leading-tight mb-2"
+              style={{ fontSize: '1.6rem', color: '#E4ECF8', letterSpacing: '-0.025em' }}
             >
-              Selamat datang kembali
-            </h1>
-            <p
-              className="mt-1.5 text-sm"
-              style={{ color: 'rgba(228,236,248,0.45)' }}
-            >
-              Khusus kasir, admin klinik &amp; super admin.
+              Selamat datang
+            </h2>
+            <p style={{ color: 'rgba(228,236,248,0.4)', fontSize: '0.85rem' }}>
+              Khusus kasir, admin klinik & super admin.
             </p>
           </div>
 
           {/* Error */}
           {error && (
             <div
-              className="mb-5 px-4 py-3 rounded-xl text-sm"
+              className="flex items-center gap-2.5 mb-5 px-4 py-3 rounded-xl text-sm"
               style={{
-                background: 'rgba(239,68,68,0.1)',
-                border: '1px solid rgba(239,68,68,0.25)',
+                background: 'rgba(239,68,68,0.08)',
+                border: '1px solid rgba(239,68,68,0.2)',
                 color: '#FCA5A5',
               }}
             >
-              {error}
+              <AlertCircle size={15} className="flex-shrink-0" /> {error}
             </div>
           )}
 
@@ -242,64 +279,78 @@ export default function PosLoginPage() {
           <form onSubmit={handleLogin} className="space-y-4">
             {/* Email */}
             <div>
-              <label
-                className="block text-xs font-semibold mb-2 uppercase tracking-wider"
-                style={{ color: 'rgba(228,236,248,0.5)' }}
-              >
+              <label className="block text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: 'rgba(228,236,248,0.4)' }}>
                 Email
               </label>
-              <input
-                type="email"
-                value={email}
-                onChange={e => setEmail(e.target.value)}
-                placeholder="kasir@aftechklinik.com"
-                required
-                className="w-full px-4 py-3 text-sm rounded-xl transition-all outline-none"
-                style={{
-                  background: 'rgba(255,255,255,0.05)',
-                  border: '1px solid rgba(255,255,255,0.1)',
-                  color: '#E4ECF8',
-                  caretColor: '#00C9A7',
-                }}
-                onFocus={e => { e.target.style.borderColor = 'rgba(0,201,167,0.5)'; e.target.style.boxShadow = '0 0 0 3px rgba(0,201,167,0.08)'; }}
-                onBlur={e => { e.target.style.borderColor = 'rgba(255,255,255,0.1)'; e.target.style.boxShadow = 'none'; }}
-              />
+              <div className="relative">
+                <Mail size={15} className="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: 'rgba(228,236,248,0.25)' }} />
+                <input
+                  type="email"
+                  value={email}
+                  onChange={e => setEmail(e.target.value)}
+                  placeholder="kasir@aftechklinik.com"
+                  required
+                  className="w-full pl-11 pr-4 py-3 text-sm rounded-xl outline-none transition-all"
+                  style={{
+                    background: 'rgba(255,255,255,0.05)',
+                    border: '1px solid rgba(255,255,255,0.08)',
+                    color: '#E4ECF8',
+                    caretColor: '#00C9A7',
+                  }}
+                  onFocus={e => {
+                    e.target.style.borderColor = 'rgba(0,201,167,0.45)';
+                    e.target.style.background = 'rgba(0,201,167,0.04)';
+                    e.target.style.boxShadow = '0 0 0 3px rgba(0,201,167,0.07)';
+                  }}
+                  onBlur={e => {
+                    e.target.style.borderColor = 'rgba(255,255,255,0.08)';
+                    e.target.style.background = 'rgba(255,255,255,0.05)';
+                    e.target.style.boxShadow = 'none';
+                  }}
+                />
+              </div>
             </div>
 
             {/* Password */}
             <div>
-              <label
-                className="block text-xs font-semibold mb-2 uppercase tracking-wider"
-                style={{ color: 'rgba(228,236,248,0.5)' }}
-              >
+              <label className="block text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: 'rgba(228,236,248,0.4)' }}>
                 Password
               </label>
               <div className="relative">
+                <Lock size={15} className="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: 'rgba(228,236,248,0.25)' }} />
                 <input
                   type={showPw ? 'text' : 'password'}
                   value={password}
                   onChange={e => setPassword(e.target.value)}
                   placeholder="••••••••"
                   required
-                  className="w-full px-4 py-3 pr-12 text-sm rounded-xl transition-all outline-none"
+                  className="w-full pl-11 pr-12 py-3 text-sm rounded-xl outline-none transition-all"
                   style={{
                     background: 'rgba(255,255,255,0.05)',
-                    border: '1px solid rgba(255,255,255,0.1)',
+                    border: '1px solid rgba(255,255,255,0.08)',
                     color: '#E4ECF8',
                     caretColor: '#00C9A7',
                   }}
-                  onFocus={e => { e.target.style.borderColor = 'rgba(0,201,167,0.5)'; e.target.style.boxShadow = '0 0 0 3px rgba(0,201,167,0.08)'; }}
-                  onBlur={e => { e.target.style.borderColor = 'rgba(255,255,255,0.1)'; e.target.style.boxShadow = 'none'; }}
+                  onFocus={e => {
+                    e.target.style.borderColor = 'rgba(0,201,167,0.45)';
+                    e.target.style.background = 'rgba(0,201,167,0.04)';
+                    e.target.style.boxShadow = '0 0 0 3px rgba(0,201,167,0.07)';
+                  }}
+                  onBlur={e => {
+                    e.target.style.borderColor = 'rgba(255,255,255,0.08)';
+                    e.target.style.background = 'rgba(255,255,255,0.05)';
+                    e.target.style.boxShadow = 'none';
+                  }}
                 />
                 <button
                   type="button"
                   onClick={() => setShowPw(p => !p)}
-                  className="absolute right-3.5 top-1/2 -translate-y-1/2 transition-colors"
-                  style={{ color: 'rgba(228,236,248,0.35)' }}
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 transition-colors p-1 rounded-lg"
+                  style={{ color: 'rgba(228,236,248,0.3)' }}
                   onMouseEnter={e => (e.currentTarget.style.color = 'rgba(228,236,248,0.7)')}
-                  onMouseLeave={e => (e.currentTarget.style.color = 'rgba(228,236,248,0.35)')}
+                  onMouseLeave={e => (e.currentTarget.style.color = 'rgba(228,236,248,0.3)')}
                 >
-                  {showPw ? <EyeOff size={16} /> : <Eye size={16} />}
+                  {showPw ? <EyeOff size={15} /> : <Eye size={15} />}
                 </button>
               </div>
             </div>
@@ -311,42 +362,73 @@ export default function PosLoginPage() {
                 disabled={loading}
                 className="w-full py-3.5 rounded-xl text-sm font-bold tracking-wide transition-all relative overflow-hidden"
                 style={{
-                  background: loading ? 'rgba(0,201,167,0.4)' : '#00C9A7',
-                  color: loading ? 'rgba(255,255,255,0.6)' : '#06091A',
+                  background: loading
+                    ? 'rgba(0,201,167,0.35)'
+                    : 'linear-gradient(135deg, #00C9A7 0%, #00A88C 100%)',
+                  color: loading ? 'rgba(255,255,255,0.5)' : '#050A18',
                   cursor: loading ? 'not-allowed' : 'pointer',
-                  boxShadow: loading ? 'none' : '0 4px 24px rgba(0,201,167,0.25)',
-                  letterSpacing: '0.04em',
+                  boxShadow: loading ? 'none' : '0 8px 32px rgba(0,201,167,0.28)',
+                  letterSpacing: '0.03em',
                 }}
-                onMouseEnter={e => { if (!loading) e.currentTarget.style.background = '#00B896'; }}
-                onMouseLeave={e => { if (!loading) e.currentTarget.style.background = '#00C9A7'; }}
-                onMouseDown={e => { if (!loading) e.currentTarget.style.transform = 'scale(0.985)'; }}
+                onMouseEnter={e => {
+                  if (!loading) e.currentTarget.style.boxShadow = '0 12px 40px rgba(0,201,167,0.4)';
+                }}
+                onMouseLeave={e => {
+                  if (!loading) e.currentTarget.style.boxShadow = '0 8px 32px rgba(0,201,167,0.28)';
+                }}
+                onMouseDown={e => { if (!loading) e.currentTarget.style.transform = 'scale(0.984)'; }}
                 onMouseUp={e => { e.currentTarget.style.transform = 'scale(1)'; }}
               >
                 {loading ? (
                   <span className="flex items-center justify-center gap-2.5">
                     <span
                       className="w-4 h-4 rounded-full border-2 inline-block"
-                      style={{ borderColor: 'rgba(255,255,255,0.3)', borderTopColor: '#fff', animation: 'spin 0.7s linear infinite' }}
+                      style={{ borderColor: 'rgba(255,255,255,0.25)', borderTopColor: '#fff', animation: 'spin 0.7s linear infinite' }}
                     />
                     Memverifikasi...
                   </span>
                 ) : (
-                  'Masuk ke POS →'
+                  <span className="flex items-center justify-center gap-2">
+                    Masuk ke POS
+                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                      <path d="M3 7h8M8 4l3 3-3 3" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  </span>
                 )}
               </button>
             </div>
           </form>
 
-          {/* Footer */}
-          <div
-            className="mt-8 pt-6 text-center text-xs"
-            style={{
-              borderTop: '1px solid rgba(255,255,255,0.06)',
-              color: 'rgba(228,236,248,0.2)',
-            }}
-          >
-            aftech Klinik · Sistem Kasir Internal
+          {/* Role chips */}
+          <div className="mt-6 pt-5" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+            <p className="text-[10px] text-center font-semibold uppercase tracking-widest mb-3" style={{ color: 'rgba(228,236,248,0.2)' }}>
+              Akses untuk
+            </p>
+            <div className="flex items-center justify-center gap-2 flex-wrap">
+              {[
+                { label: 'Super Admin', color: '#C8A56A' },
+                { label: 'Admin Klinik', color: '#7C9FD4' },
+                { label: 'Kasir', color: '#00C9A7' },
+              ].map(r => (
+                <span
+                  key={r.label}
+                  className="text-[10px] font-semibold px-2.5 py-1 rounded-full"
+                  style={{
+                    background: `rgba(${r.color === '#C8A56A' ? '200,165,106' : r.color === '#7C9FD4' ? '124,159,212' : '0,201,167'},0.1)`,
+                    border: `1px solid ${r.color}30`,
+                    color: r.color,
+                  }}
+                >
+                  {r.label}
+                </span>
+              ))}
+            </div>
           </div>
+        </div>
+
+        {/* Footer */}
+        <div className="mt-6 text-[11px] text-center" style={{ color: 'rgba(228,236,248,0.15)' }}>
+          aftech Klinik · Sistem Internal · {new Date().getFullYear()}
         </div>
       </div>
     </div>
