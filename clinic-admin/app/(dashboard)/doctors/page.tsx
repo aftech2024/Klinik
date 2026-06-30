@@ -1,9 +1,11 @@
 'use client';
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import Header from '@/components/Header';
 import api from '@/lib/api';
 import { getUser, type AdminUser } from '@/lib/auth';
-import { Stethoscope, MapPin, Award, X, Plus, Trash2, Building2, UserPlus } from 'lucide-react';
+import { Stethoscope, MapPin, Award, X, Plus, Trash2, Building2, UserPlus, Camera } from 'lucide-react';
+
+const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001';
 
 type BranchRef = { id: string; name: string; city: string };
 type DoctorBranch = { branch: BranchRef };
@@ -276,8 +278,40 @@ export default function DoctorsPage() {
   const [managing, setManaging] = useState<Doctor | null>(null);
   const [adding, setAdding] = useState(false);
   const [user, setUser] = useState<AdminUser | null>(null);
+  const [uploading, setUploading] = useState<string | null>(null); // doctorId being uploaded
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const uploadTargetRef = useRef<string | null>(null); // doctorId for pending upload
 
   useEffect(() => { setUser(getUser()); }, []);
+
+  async function handlePhotoUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    const doctorId = uploadTargetRef.current;
+    if (!file || !doctorId) return;
+    e.target.value = '';
+
+    setUploading(doctorId);
+    try {
+      const form = new FormData();
+      form.append('file', file);
+      const { data: uploaded } = await api.post('/api/upload', form, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      const photoUrl = `${API_BASE}${uploaded.url}`;
+      await api.patch(`/api/doctors/${doctorId}`, { photoUrl });
+      setDoctors(prev => prev.map(d => d.id === doctorId ? { ...d, photoUrl } : d));
+    } catch (err: any) {
+      alert(err?.response?.data?.message ?? 'Gagal upload foto.');
+    } finally {
+      setUploading(null);
+      uploadTargetRef.current = null;
+    }
+  }
+
+  function triggerPhotoUpload(doctorId: string) {
+    uploadTargetRef.current = doctorId;
+    fileInputRef.current?.click();
+  }
 
   const load = useCallback(async () => {
     const u = getUser();
@@ -305,6 +339,14 @@ export default function DoctorsPage() {
 
   return (
     <div>
+      {/* Hidden file input for photo upload */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/png,image/jpeg,image/webp"
+        className="hidden"
+        onChange={handlePhotoUpload}
+      />
       <Header title="Manajemen Dokter" />
       <div className="p-6 lg:p-8">
         <div className="flex items-center justify-between mb-6 gap-4 flex-wrap">
@@ -355,10 +397,29 @@ export default function DoctorsPage() {
               <div key={d.id} className="bg-white rounded-2xl border border-slate-200 hover:shadow-md hover:border-slate-300 transition-all duration-200 overflow-hidden">
                 <div className="p-6">
                   <div className="flex items-start gap-4 mb-4">
-                    <div className="relative flex-shrink-0">
-                      <div className="w-14 h-14 bg-gradient-to-br from-emerald-400 to-teal-500 rounded-2xl flex items-center justify-center">
-                        <span className="text-white font-bold text-base">{initials(d.name)}</span>
-                      </div>
+                    <div className="relative flex-shrink-0 group/avatar">
+                      <button
+                        onClick={() => triggerPhotoUpload(d.id)}
+                        disabled={uploading === d.id}
+                        title="Klik untuk ganti foto"
+                        className="w-14 h-14 rounded-2xl overflow-hidden relative focus:outline-none focus:ring-2 focus:ring-emerald-500 disabled:opacity-60"
+                      >
+                        {d.photoUrl ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={d.photoUrl} alt={d.name} className="w-full h-full object-cover object-top" />
+                        ) : (
+                          <div className="w-full h-full bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center">
+                            <span className="text-white font-bold text-base">{initials(d.name)}</span>
+                          </div>
+                        )}
+                        {/* Camera overlay on hover */}
+                        <div className={`absolute inset-0 bg-black/40 flex items-center justify-center transition-opacity ${uploading === d.id ? 'opacity-100' : 'opacity-0 group-hover/avatar:opacity-100'}`}>
+                          {uploading === d.id
+                            ? <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                            : <Camera size={16} className="text-white" />
+                          }
+                        </div>
+                      </button>
                       <span className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full border-2 border-white ${d.isActive ? 'bg-emerald-500' : 'bg-slate-300'}`} />
                     </div>
                     <div className="flex-1 min-w-0">
