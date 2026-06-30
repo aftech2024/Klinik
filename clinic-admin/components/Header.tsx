@@ -47,12 +47,16 @@ export default function Header({ title }: { title: string }) {
     try {
       const data = await api.get('/api/notifications').then(r => r.data ?? []);
       setNotifs(data);
-    } catch { /* silent */ }
+    } catch (err: any) {
+      // 401 = token invalid/expired — interceptor handles logout, stop polling
+      if (err?.response?.status === 401) return;
+      // other errors: silent ignore
+    }
   }, []);
 
   useEffect(() => {
     fetchNotifs();
-    const interval = setInterval(fetchNotifs, 60000);
+    const interval = setInterval(fetchNotifs, 120000); // 2 min instead of 1
     return () => clearInterval(interval);
   }, [fetchNotifs]);
 
