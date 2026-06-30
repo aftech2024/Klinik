@@ -11,13 +11,6 @@ import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 
 const BUCKET = 'clinic-uploads';
 
-function getSupabase() {
-  const url = process.env.SUPABASE_URL;
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!url || !key) throw new InternalServerErrorException('Supabase storage not configured');
-  return createClient(url, key);
-}
-
 @Controller('api/upload')
 @UseGuards(JwtAuthGuard)
 export class UploadController {
@@ -37,22 +30,37 @@ export class UploadController {
   async uploadFile(@UploadedFile() file: Express.Multer.File) {
     if (!file) throw new BadRequestException('File tidak ditemukan');
 
-    const supabase = getSupabase();
-    const filename = `${uuid()}${extname(file.originalname)}`;
-    const path = `doctors/${filename}`;
+    const url = process.env.SUPABASE_URL;
+    const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    if (!url || !key) {
+      throw new InternalServerErrorException('Supabase storage not configured (missing env vars)');
+    }
 
-    const { error } = await supabase.storage
-      .from(BUCKET)
-      .upload(path, file.buffer, {
-        contentType: file.mimetype,
-        upsert: false,
+    try {
+      const supabase = createClient(url, key, {
+        auth: { persistSession: false },
       });
 
-    if (error) throw new InternalServerErrorException(`Upload gagal: ${error.message}`);
+      const filename = `${uuid()}${extname(file.originalname)}`;
+      const path = `doctors/${filename}`;
 
-    const { data: publicData } = supabase.storage.from(BUCKET).getPublicUrl(path);
-    const url = publicData.publicUrl;
+      const { error } = await supabase.storage
+        .from(BUCKET)
+        .upload(path, file.buffer, {
+          contentType: file.mimetype,
+          upsert: false,
+        });
 
-    return { url, filename, size: file.size };
+      if (error) {
+        throw new InternalServerErrorException(`Upload gagal: ${error.message}`);
+      }
+
+      const { data: publicData } = supabase.storage.from(BUCKET).getPublicUrl(path);
+
+      return { url: publicData.publicUrl, filename, size: file.size };
+    } catch (e: any) {
+      if (e.status) throw e; // re-throw HttpException
+      throw new InternalServerErrorException(`Upload error: ${e?.message ?? String(e)}`);
+    }
   }
 }
