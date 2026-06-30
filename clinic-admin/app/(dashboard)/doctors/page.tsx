@@ -278,6 +278,7 @@ export default function DoctorsPage() {
   const [adding, setAdding] = useState(false);
   const [user, setUser] = useState<AdminUser | null>(null);
   const [uploading, setUploading] = useState<string | null>(null); // doctorId being uploaded
+  const [imgErrors, setImgErrors] = useState<Set<string>>(new Set());
   const fileInputRef = useRef<HTMLInputElement>(null);
   const uploadTargetRef = useRef<string | null>(null); // doctorId for pending upload
 
@@ -403,9 +404,19 @@ export default function DoctorsPage() {
                         title="Klik untuk ganti foto"
                         className="w-14 h-14 rounded-2xl overflow-hidden relative focus:outline-none focus:ring-2 focus:ring-emerald-500 disabled:opacity-60"
                       >
-                        {d.photoUrl ? (
+                        {d.photoUrl && !imgErrors.has(d.id) ? (
                           // eslint-disable-next-line @next/next/no-img-element
-                          <img src={d.photoUrl} alt={d.name} className="w-full h-full object-cover object-top" />
+                          <img
+                            src={d.photoUrl}
+                            alt={d.name}
+                            className="w-full h-full object-cover object-top"
+                            onError={() => {
+                              setImgErrors(prev => new Set(prev).add(d.id));
+                              // clear broken URL so DB stays clean
+                              api.patch(`/api/doctors/${d.id}`, { photoUrl: null }).catch(() => {});
+                              setDoctors(prev => prev.map(x => x.id === d.id ? { ...x, photoUrl: null } : x));
+                            }}
+                          />
                         ) : (
                           <div className="w-full h-full bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center">
                             <span className="text-white font-bold text-base">{initials(d.name)}</span>
