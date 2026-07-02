@@ -1,7 +1,21 @@
 node_modules/
 .next/
 dist/
-.env
-.env.local
 *.log
 .DS_Store
+
+# Environment / secrets
+.env
+.env.*
+!.env.example
+!.env.*.example
+
+# Credentials — never commit
+LOGIN-CREDENTIALS.md
+*credential*
+*credentials*
+*.pem
+*.key
+*.p12
+*.keystore
+secrets.*
